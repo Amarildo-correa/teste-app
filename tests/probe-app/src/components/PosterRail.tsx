@@ -70,6 +70,10 @@ export const RailFocusContext = createContext<{
   selectedIndexes: Record<string, number>;
 }>({activeRail: null, selectedIndexes: {}});
 
+/** Duracao do encolher do cartao ao apertar OK; a tela espera por ela. */
+export const CARD_PRESS_MS = 150;
+const CARD_ANIMATION = {itemPressedDuration: CARD_PRESS_MS / 1000};
+
 /** Faltando estes cartoes para o fim do que ja chegou, pede a proxima pagina. */
 const LOAD_AHEAD = 8;
 
@@ -250,6 +254,7 @@ export const PosterRail = memo(
               orientation="horizontal"
               dataAdapter={titlesAdapter}
               renderItem={renderTitle}
+              animationDuration={CARD_ANIMATION}
               initialStartIndex={selectedIndexes[spec.key] ?? 0}
               itemStyle={ITEM_GAP}
               selectionStrategy="anchored"

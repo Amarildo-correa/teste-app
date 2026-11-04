@@ -25,7 +25,7 @@ import {
 } from '@amazon-devices/vega-carousel';
 import {C, RAIL_MAIN_X, SAFE_Y, SCREEN_W, px} from '../theme';
 import {TopBar} from '../components/TopBar';
-import {PosterRail, RailFocusContext} from '../components/PosterRail';
+import {CARD_PRESS_MS, PosterRail, RailFocusContext} from '../components/PosterRail';
 import {LIVE_RAILS, RAILS, type RailSpec} from '../data/rails';
 import {createPager, type Pager} from '../data/railPager';
 import {fetchNetflixPage, hasApiKey, type TmdbTitle} from '../data/tmdb';
@@ -53,6 +53,13 @@ const createRailPagers = (): RailPagers =>
           ],
     ),
   );
+
+/**
+ * Espera antes de abrir o titulo, para o encolher do cartao aparecer inteiro.
+ * O pacote nao avisa o fim da animacao, entao e a duracao dela mais uma folga de
+ * alguns quadros. Pedido na TV em 2026-11-04: o cartao mostra de onde veio a tela.
+ */
+const OPEN_TITLE_DELAY_MS = CARD_PRESS_MS + 50;
 
 /* Sem o vao padrao do Carousel: o espaco entre trilhos ja vem do RAIL_GAP.
  * Sem escala ao apertar: para o Carousel de fora, o item pressionado e o trilho
@@ -115,9 +122,32 @@ export const CatalogScreen = ({navigation}: ScreenProps<'catalog'>): React.JSX.E
     setBarFocused(false);
   }, []);
 
+  const openTitleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleTitlePress = useCallback(
-    (title: TmdbTitle): void => navigation.navigate('title', {title}),
+    (title: TmdbTitle): void => {
+      /* Segundo OK durante a espera nao abre outra tela. */
+      if (openTitleTimer.current !== null) {
+        return;
+      }
+      openTitleTimer.current = setTimeout(() => {
+        openTitleTimer.current = null;
+        /* O Menu pode ter aberto o Diagnostico durante a espera. */
+        if (navigation.isFocused()) {
+          navigation.navigate('title', {title});
+        }
+      }, OPEN_TITLE_DELAY_MS);
+    },
     [navigation],
+  );
+
+  useEffect(
+    () => () => {
+      if (openTitleTimer.current !== null) {
+        clearTimeout(openTitleTimer.current);
+      }
+    },
+    [],
   );
 
   const handleRailSelected = useCallback(

@@ -80,3 +80,7 @@ Em aberto: o TMDB entrega no máximo 500 páginas por consulta, e os títulos j�
 Com o Carousel vertical, o OK encolhia o trilho inteiro: para o Carousel de fora, o item pressionado é o trilho, e `pressedItemScaleFactor` vale 0,8 por padrão. Agora ele é 1 nesse Carousel, e só o de dentro anima.
 
 Lido na TV pelo responsável pelo projeto: ao apertar OK, o card encolhe; ao voltar, o mesmo card cresce. **Isso é desejado, não efeito colateral:** mostra ao usuário de qual card veio a página. Mudar o `pressedItemScaleFactor` do Carousel de dentro remove esse sinal.
+
+A tela do título agora abre 200 ms depois do OK (150 ms do encolher do card mais uma folga), para a animação aparecer inteira. Aprovado na TV pelo responsável pelo projeto.
+
+Não testado: as guardas de segundo OK e de Menu durante a espera. Cada tecla por `inputd-cli` leva cerca de 390 ms, mais que a janela, então nenhuma delas disparou. Fora da janela, o segundo OK aciona o botão da tela do título e abre o Netflix (medido); isso já valia antes da espera.
