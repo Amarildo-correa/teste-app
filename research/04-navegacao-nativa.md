@@ -74,3 +74,9 @@ Para o catálogo crescer até milhares de cards sem carregar tudo: cada trilho t
 Controle negativo no aparelho: nenhum. O caso de erro de rede foi coberto só por teste de unidade.
 
 Em aberto: o TMDB entrega no máximo 500 páginas por consulta, e os títulos já carregados ficam em memória enquanto o catálogo estiver aberto. O consumo real de memória não foi medido, pelos motivos da tabela de ferramentas acima.
+
+## Animação ao abrir e voltar — 2026-11-04
+
+Com o Carousel vertical, o OK encolhia o trilho inteiro: para o Carousel de fora, o item pressionado é o trilho, e `pressedItemScaleFactor` vale 0,8 por padrão. Agora ele é 1 nesse Carousel, e só o de dentro anima.
+
+Lido na TV pelo responsável pelo projeto: ao apertar OK, o card encolhe; ao voltar, o mesmo card cresce. **Isso é desejado, não efeito colateral:** mostra ao usuário de qual card veio a página. Mudar o `pressedItemScaleFactor` do Carousel de dentro remove esse sinal.

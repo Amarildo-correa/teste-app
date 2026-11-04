@@ -54,8 +54,11 @@ const createRailPagers = (): RailPagers =>
     ),
   );
 
-/* Sem o vao padrao do Carousel: o espaco entre trilhos ja vem do RAIL_GAP. */
-const NO_GAP = {itemPadding: 0, itemPaddingOnSelection: 0};
+/* Sem o vao padrao do Carousel: o espaco entre trilhos ja vem do RAIL_GAP.
+ * Sem escala ao apertar: para o Carousel de fora, o item pressionado e o trilho
+ * inteiro, e o padrao de 0.8 encolhia o trilho todo a cada OK (visto na TV em
+ * 2026-11-04). A animacao fica so no cartao, pelo Carousel de dentro. */
+const RAIL_ITEM_STYLE = {itemPadding: 0, itemPaddingOnSelection: 0, pressedItemScaleFactor: 1};
 
 const railsAdapter: CarouselItemDataAdapter<RailSpec, string> = {
   getItem: index => RAILS[index],
@@ -183,7 +186,7 @@ export const CatalogScreen = ({navigation}: ScreenProps<'catalog'>): React.JSX.E
           orientation="vertical"
           dataAdapter={railsAdapter}
           renderItem={renderRail}
-          itemStyle={NO_GAP}
+          itemStyle={RAIL_ITEM_STYLE}
           renderedItemsCount={RENDERED_RAILS}
           numOffsetItems={1}
           selectionStrategy="anchored"
