@@ -58,6 +58,10 @@ Armadilhas do container, todas já pagas uma vez:
 - A imagem de capa do launcher (app em foco) não sai do pacote: é asset da ficha na Appstore. Sideloaded mostra fundo preto. Ver
   `research/03-capa-launcher.md`.
 
+### Ver a interface sem o aparelho
+
+O Vega Virtual Device roda em outro container, `vega-vvd`, com janela no Windows, e usa o `.vpkg` `x86_64` que o mesmo build gera. Serve para ver a interface; as medições continuam no Fire Stick, e o screenshot abaixo trava no VVD. Receita em `research/05-vega-virtual-device-wsl.md`.
+
 ### Ver a tela e apertar botões
 
 ```bash
