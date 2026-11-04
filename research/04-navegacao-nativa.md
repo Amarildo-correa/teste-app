@@ -96,3 +96,5 @@ Não testado: as guardas de segundo OK e de Menu durante a espera. Cada tecla po
 Com a animação, o fundo branco do tema padrão do navegador aparecia como um flash. O tema e o `contentStyle` agora usam `C.bg`, e o flash sumiu, conferido na TV.
 
 O Back espera a saída por `beforeRemove`. O segundo Back durante os 200 ms não foi testado: cada tecla por script leva cerca de 390 ms. O custo da animação no armv7 não foi medido.
+
+A espera entre o OK e a abertura do título passou de 200 ms para 150 ms, a pedido do responsável pelo projeto, sem novo teste.

@@ -56,10 +56,10 @@ const createRailPagers = (): RailPagers =>
 
 /**
  * Espera antes de abrir o titulo, para o encolher do cartao aparecer inteiro.
- * O pacote nao avisa o fim da animacao, entao e a duracao dela mais uma folga de
- * alguns quadros. Pedido na TV em 2026-11-04: o cartao mostra de onde veio a tela.
+ * O pacote nao avisa o fim da animacao, entao e a duracao dela. Era 200 ms, com
+ * folga; reduzido a pedido na TV em 2026-11-04.
  */
-const OPEN_TITLE_DELAY_MS = CARD_PRESS_MS + 50;
+const OPEN_TITLE_DELAY_MS = CARD_PRESS_MS;
 
 /* Sem o vao padrao do Carousel: o espaco entre trilhos ja vem do RAIL_GAP.
  * Sem escala ao apertar: para o Carousel de fora, o item pressionado e o trilho
