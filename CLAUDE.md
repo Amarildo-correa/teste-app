@@ -24,7 +24,7 @@ Por ser público, o serial do aparelho não entra no repositório: nos documento
 ## Comandos
 
 ```bash
-node --test tests/unit/*.test.mjs                        # 18 testes, instantâneo
+node --test tests/unit/*.test.mjs                        # 26 testes, instantâneo
 node --test --test-name-pattern "storeId" tests/unit/*.test.mjs   # um teste só
 tests/device/probe-catalog.sh [IP:PORTA]                 # ~40 s, não toca na tela
 ```
@@ -134,6 +134,8 @@ preservar:
 ## Navegação
 
 `@amazon-devices/react-navigation__native-stack` (rotas em `tests/probe-app/src/navigation/routes.ts`). O catálogo fica montado por baixo do título, então trilho, poster e rolagem voltam como estavam sem nenhum código de restauração. O Back é do navegador: **não registre `BackHandler` em tela**. Medido em Release armv7 em 2026-11-04, ver `research/04-navegacao-nativa.md`.
+
+Os trilhos paginam sob demanda (`tests/probe-app/src/data/railPager.js`, em JS com tipos em `.d.ts` porque o Node do WSL não carrega `.ts`). Página nova entra por `notifyDataChange`, nunca por prop: o Carousel de fora não redesenha item montado.
 
 No container, `npm install` exige `--legacy-peer-deps`: o conflito de `@typescript-eslint` já existia e não tem relação com os pacotes do app.
 

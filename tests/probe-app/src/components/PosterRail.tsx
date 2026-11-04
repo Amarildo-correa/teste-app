@@ -21,11 +21,13 @@
  * um esqueleto. Fazer o trilho vazio navegar de outro jeito ensinaria ao
  * usuario uma regra que deixa de valer assim que o dado chega.
  */
-import React, {createContext, memo, useCallback, useContext, useMemo} from 'react';
+import React, {createContext, memo, useCallback, useContext, useMemo, useRef} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {
   Carousel,
+  CarouselDataChangeType,
   type CarouselItemDataAdapter,
+  type CarouselRef,
   type CarouselRenderInfo,
   type CarouselSelectionChangeEvent,
 } from '@amazon-devices/vega-carousel';
@@ -33,6 +35,7 @@ import {C, POSTER_GAP, POSTER_H, RAIL_GAP, RAIL_HEADER_H, RAIL_MAIN_X, SCREEN_W,
 import {BrandChip} from './BrandChip';
 import {PosterCard} from './PosterCard';
 import {SkeletonCard} from './SkeletonCard';
+import type {Pager} from '../data/railPager';
 import type {RailSpec} from '../data/rails';
 import type {TmdbTitle} from '../data/tmdb';
 
@@ -67,9 +70,13 @@ export const RailFocusContext = createContext<{
   selectedIndexes: Record<string, number>;
 }>({activeRail: null, selectedIndexes: {}});
 
+/** Faltando estes cartoes para o fim do que ja chegou, pede a proxima pagina. */
+const LOAD_AHEAD = 8;
+
 type Props = {
   spec: RailSpec;
-  titles: TmdbTitle[];
+  /** null = trilho sem dado (provedor ainda em esqueleto). */
+  pager: Pager<TmdbTitle> | null;
   /** O primeiro cartao deste trilho recebe o foco na montagem? */
   takesInitialFocus: boolean;
   onRailFocus: (key: string) => void;
@@ -79,7 +86,7 @@ type Props = {
 export const PosterRail = memo(
   ({
     spec,
-    titles,
+    pager,
     takesInitialFocus,
     onRailFocus,
     onTitlePress,
@@ -89,7 +96,11 @@ export const PosterRail = memo(
 
     /* Trilho live sem titulo ainda (rede em voo, ou sem chave do TMDB) cai
      * no mesmo esqueleto dos outros — nao ha estado de "vazio" na tela. */
-    const showSkeleton = !spec.live || titles.length === 0;
+    const showSkeleton = !spec.live || pager === null || pager.items.length === 0;
+
+    const titlesRef = useRef<CarouselRef<number>>(null);
+    const pagerRef = useRef(pager);
+    pagerRef.current = pager;
 
     const handleCardFocus = useCallback(() => onRailFocus(spec.key), [onRailFocus, spec.key]);
 
@@ -103,8 +114,24 @@ export const PosterRail = memo(
       ({selectedIndex}: CarouselSelectionChangeEvent) => {
         selectedIndexes[spec.key] = selectedIndex;
         onRailFocus(spec.key);
+
+        /* A pagina nova entra por `notifyDataChange`, nao por prop: e o que
+         * acrescenta cartoes sem redesenhar o trilho nem mexer no foco. O item
+         * do Carousel de fora nao redesenha quando o `renderItem` muda, entao
+         * uma prop nova nem chegaria a um trilho ja montado. */
+        if (pager !== null && selectedIndex >= pager.items.length - LOAD_AHEAD) {
+          const position = pager.items.length;
+          void pager.loadNext().then(count => {
+            /* O trilho pode ter sido reciclado para outro provedor na espera. */
+            if (count > 0 && pagerRef.current === pager) {
+              titlesRef.current?.notifyDataChange([
+                {type: CarouselDataChangeType.ADD, position, count},
+              ]);
+            }
+          });
+        }
       },
-      [onRailFocus, selectedIndexes, spec.key],
+      [onRailFocus, pager, selectedIndexes, spec.key],
     );
 
     const skeletonAdapter: CarouselItemDataAdapter<number, string> = useMemo(
@@ -119,12 +146,13 @@ export const PosterRail = memo(
 
     const titlesAdapter: CarouselItemDataAdapter<TmdbTitle, number> = useMemo(
       () => ({
-        getItem: index => titles[index],
-        getItemCount: () => titles.length,
+        /* Le o paginador na hora: `items` cresce sem trocar de identidade. */
+        getItem: index => pager?.items[index],
+        getItemCount: () => pager?.items.length ?? 0,
         getItemKey: (info: CarouselRenderInfo<TmdbTitle>) => info.item.id,
         notifyDataError: () => false,
       }),
-      [titles],
+      [pager],
     );
 
     /* `focused` sempre false aqui: quem desenha o anel agora e o
@@ -149,7 +177,10 @@ export const PosterRail = memo(
 
     const renderTitle = useCallback(
       ({item: title, index}: CarouselRenderInfo<TmdbTitle>) => (
+        /* A key zera o estado do cartao (retry, falha) quando a celula e
+         * reciclada: sem ela, um titulo herdaria a falha de imagem do anterior. */
         <PosterCard
+          key={title.id}
           title={title}
           focused={false}
           railActive={active}
@@ -213,6 +244,7 @@ export const PosterRail = memo(
             />
           ) : (
             <Carousel<TmdbTitle, number>
+              ref={titlesRef}
               uniqueId={spec.key}
               containerStyle={styles.track}
               orientation="horizontal"

@@ -14,6 +14,7 @@
  * na Netflix daqui, e o deep link cairia num titulo que o usuario nao tem.
  */
 import {TMDB_API_KEY} from '../config/tmdbKey';
+import type {Page} from './railPager';
 
 const API = 'https://api.themoviedb.org/3';
 const IMG = 'https://image.tmdb.org/t/p';
@@ -60,9 +61,10 @@ const normalize = (raw: RawItem, kind: 'movie' | 'tv'): TmdbTitle | null => {
     kind,
     title,
     overview: raw.overview ?? '',
-    /* w500 para o trilho: o poster ocupa 300px de projeto, entao w500 ja
-     * sobra. Puxar `original` so gastaria banda e memoria no armv7. */
-    posterUrl: imageUrl(raw.poster_path, 'w500'),
+    /* w342 para o trilho: o poster ocupa 300px de projeto. A imagem decodificada
+     * e a maior parte da memoria do catalogo no armv7, e w500 gastaria o dobro
+     * por poster sem nada a mais na tela. */
+    posterUrl: imageUrl(raw.poster_path, 'w342'),
     /* w780 para a coluna da tela de titulo, que ocupa 900x1080 de projeto:
      * w500 ficaria visivelmente esticado ali. */
     posterLargeUrl: imageUrl(raw.poster_path, 'w780'),
@@ -87,39 +89,41 @@ const get = async (path: string, params: Record<string, string>): Promise<unknow
 };
 
 /**
- * Catalogo da Netflix BR, por tipo.
+ * Uma pagina do catalogo da Netflix BR, por tipo.
  *
- * Erro vira lista vazia de proposito: a tela ja sabe desenhar esqueleto, e um
- * throw aqui derrubaria a renderizacao inteira — a mesma licao que o
- * `canOpenURL` deu em G3.
+ * Lanca em erro de rede ou HTTP: quem decide o que fazer e o paginador, que
+ * guarda o que ja chegou e repete a pagina na proxima tentativa.
  */
-export const discoverNetflix = async (
+export const fetchNetflixPage = async (
   kind: 'movie' | 'tv',
-  genreId?: number,
-): Promise<TmdbTitle[]> => {
+  genreId: number | undefined,
+  page: number,
+): Promise<Page<TmdbTitle>> => {
   if (!hasApiKey()) {
-    return [];
+    return {items: [], totalPages: 0};
   }
-  try {
-    const params: Record<string, string> = {
-      with_watch_providers: String(TMDB_PROVIDER_NETFLIX),
-      watch_region: TMDB_REGION,
-      sort_by: 'popularity.desc',
-      /* Sem isso o /discover devolve titulo sem poster, e o trilho fica com
-       * buraco. Melhor pedir menos e pedir completo. */
-      include_adult: 'false',
-      page: '1',
-    };
-    if (genreId !== undefined) {
-      params.with_genres = String(genreId);
-    }
-    const data = (await get(`/discover/${kind}`, params)) as {results?: RawItem[]};
-    return (data.results ?? [])
+  const params: Record<string, string> = {
+    with_watch_providers: String(TMDB_PROVIDER_NETFLIX),
+    watch_region: TMDB_REGION,
+    sort_by: 'popularity.desc',
+    /* Sem isso o /discover devolve titulo sem poster, e o trilho fica com
+     * buraco. Melhor pedir menos e pedir completo. */
+    include_adult: 'false',
+    page: String(page),
+  };
+  if (genreId !== undefined) {
+    params.with_genres = String(genreId);
+  }
+  const data = (await get(`/discover/${kind}`, params)) as {
+    results?: RawItem[];
+    total_pages?: number;
+  };
+  return {
+    items: (data.results ?? [])
       .map(raw => normalize(raw, kind))
-      .filter((t): t is TmdbTitle => t !== null && t.posterUrl !== null);
-  } catch {
-    return [];
-  }
+      .filter((t): t is TmdbTitle => t !== null && t.posterUrl !== null),
+    totalPages: data.total_pages ?? page,
+  };
 };
 
 /**

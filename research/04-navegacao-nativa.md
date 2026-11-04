@@ -60,3 +60,17 @@ Teste de carga, em build só de teste: 2000 títulos sintéticos em cada um dos 
 - **Catálogo vivo em uso longo:** 30 ciclos de abrir e voltar não foram rodados.
 - **Título → Netflix → voltar ao portal:** precisa de uma pessoa olhando a TV, por causa do DRM.
 - **Foco sem rede depois de voltar:** não testado.
+
+## Paginação dos trilhos — 2026-11-04
+
+Para o catálogo crescer até milhares de cards sem carregar tudo: cada trilho tem um paginador (`src/data/railPager.js`) que pede a próxima página do TMDB quando faltam 8 cartões para o fim do que já chegou. A página nova entra por `notifyDataChange`, não por prop, porque o Carousel de fora não redesenha um item montado. O teto de 12 títulos por trilho saiu. O pôster do trilho passou de `w500` para `w342`.
+
+| Caso, Release armv7 | Resultado | Evidência |
+|---|---|---|
+| 130 cartões para a direita e 130 de volta, por script | sem crash, portal `VISIBLE` | `vlcm list`, `vlcm crash-history` |
+| Passar do 20º pôster, abrir título e voltar, trocar de trilho e voltar, ir ao início | ok | lido na TV, no controle, pelo responsável pelo projeto |
+| Paginador: em voo, repetidos, última página, erro, página vazia | 8 testes, 6 mutações detectadas | `tests/unit/railPager.test.mjs` |
+
+Controle negativo no aparelho: nenhum. O caso de erro de rede foi coberto só por teste de unidade.
+
+Em aberto: o TMDB entrega no máximo 500 páginas por consulta, e os títulos já carregados ficam em memória enquanto o catálogo estiver aberto. O consumo real de memória não foi medido, pelos motivos da tabela de ferramentas acima.

@@ -27,25 +27,32 @@ import {C, RAIL_MAIN_X, SAFE_Y, SCREEN_W, px} from '../theme';
 import {TopBar} from '../components/TopBar';
 import {PosterRail, RailFocusContext} from '../components/PosterRail';
 import {LIVE_RAILS, RAILS, type RailSpec} from '../data/rails';
-import {discoverNetflix, hasApiKey, type TmdbTitle} from '../data/tmdb';
+import {createPager, type Pager} from '../data/railPager';
+import {fetchNetflixPage, hasApiKey, type TmdbTitle} from '../data/tmdb';
 import type {ScreenProps} from '../navigation/routes';
 
 /** Dois visiveis, um acima e um abaixo, para o foco ter para onde ir. */
 const RENDERED_RAILS = 4;
 
-/**
- * Teto de cartoes por trilho.
- *
- * O TMDB devolve 20 por pagina. Com seis trilhos live isso daria 120
- * imagens remotas. Doze por trilho ja da 72, que e mais do que cabe na tela
- * varias vezes.
- *
- * Numero de conforto, nao o limite da tela: os Carousels reciclam. O que falta
- * para subir e paginar a busca no TMDB.
- */
-const MAX_PER_RAIL = 12;
+type RailPagers = Record<string, Pager<TmdbTitle>>;
 
-export type RailTitles = Record<string, TmdbTitle[]>;
+/** Um paginador por trilho live. Vive com a tela, que fica montada na pilha. */
+const createRailPagers = (): RailPagers =>
+  Object.fromEntries(
+    LIVE_RAILS.flatMap(({key, query}) =>
+      query === undefined
+        ? []
+        : [
+            [
+              key,
+              createPager<TmdbTitle>(
+                page => fetchNetflixPage(query.kind, query.genreId, page),
+                title => title.id,
+              ),
+            ],
+          ],
+    ),
+  );
 
 /* Sem o vao padrao do Carousel: o espaco entre trilhos ja vem do RAIL_GAP. */
 const NO_GAP = {itemPadding: 0, itemPaddingOnSelection: 0};
@@ -58,8 +65,7 @@ const railsAdapter: CarouselItemDataAdapter<RailSpec, string> = {
 };
 
 export const CatalogScreen = ({navigation}: ScreenProps<'catalog'>): React.JSX.Element => {
-  /** Titulos por chave de trilho. Trilho ausente do mapa = ainda carregando. */
-  const [byRail, setByRail] = useState<RailTitles>({});
+  const [pagers] = useState<RailPagers>(createRailPagers);
   const [settled, setSettled] = useState<boolean>(false);
   /* So a primeira montagem pede foco. Medido em 2026-11-04: o primeiro trilho,
    * ao ser reciclado de volta, remontava com `hasTVPreferredFocus` e roubava o
@@ -73,23 +79,11 @@ export const CatalogScreen = ({navigation}: ScreenProps<'catalog'>): React.JSX.E
   useEffect(() => {
     let cancelled = false;
     const run = async (): Promise<void> => {
-      /* `discoverNetflix` ja engole o proprio erro e devolve lista vazia,
-       * entao nao ha promise rejeitada para derrubar o Promise.all. Trilho
-       * que falhou simplesmente fica em esqueleto. */
-      const lists = await Promise.all(
-        LIVE_RAILS.map(async rail => {
-          const query = rail.query;
-          if (query === undefined) {
-            return [rail.key, []] as const;
-          }
-          const titles = await discoverNetflix(query.kind, query.genreId);
-          return [rail.key, titles.slice(0, MAX_PER_RAIL)] as const;
-        }),
-      );
+      /* `loadNext` nao rejeita, entao uma falha nao derruba o Promise.all.
+       * Trilho que falhou fica em esqueleto. */
+      await Promise.all(Object.values(pagers).map(pager => pager.loadNext()));
 
       if (!cancelled) {
-        const rails: RailTitles = Object.fromEntries(lists);
-        setByRail(rails);
         initialFocusTaken.current = false;
         setSettled(true);
         /* A pilha remonta (ver `stackKey`) e o foco volta para o primeiro
@@ -102,13 +96,10 @@ export const CatalogScreen = ({navigation}: ScreenProps<'catalog'>): React.JSX.E
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pagers]);
 
   /** Nenhum trilho live trouxe nada, mesmo com chave: rede ou TMDB. */
-  const allEmpty = useMemo(
-    () => LIVE_RAILS.every(rail => (byRail[rail.key] ?? []).length === 0),
-    [byRail],
-  );
+  const allEmpty = Object.values(pagers).every(pager => pager.items.length === 0);
 
   /* Uma transicao so: 'loading' -> 'ready'. `ready` ja e verdadeiro de
    * saida quando nao ha chave, porque nesse caso nenhuma busca acontece e
@@ -140,13 +131,13 @@ export const CatalogScreen = ({navigation}: ScreenProps<'catalog'>): React.JSX.E
     ({item: spec, index}: CarouselRenderInfo<RailSpec>) => (
       <PosterRail
         spec={spec}
-        titles={byRail[spec.key] ?? []}
+        pager={pagers[spec.key] ?? null}
         takesInitialFocus={index === 0 && !initialFocusTaken.current}
         onRailFocus={handleRailFocus}
         onTitlePress={handleTitlePress}
       />
     ),
-    [byRail, handleRailFocus, handleTitlePress],
+    [pagers, handleRailFocus, handleTitlePress],
   );
 
   /* Trilho reciclado perde a posicao: e aqui que ela sobrevive. */
