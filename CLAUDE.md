@@ -131,6 +131,12 @@ preservar:
 - **Os documentos preservam o histórico.** A tabela de portões diz "6/6" no G3 e "8/8" no G5 porque o catálogo cresceu entre as duas medições. Não reescreva números antigos para ficarem bonitos; acrescente a medição nova.
 - **Caso negativo vale tanto quanto o positivo.** Todo portão fechado aqui tem um controle que deveria falhar — e falhou.
 
+## Navegação
+
+`@amazon-devices/react-navigation__native-stack` (rotas em `tests/probe-app/src/navigation/routes.ts`). O catálogo fica montado por baixo do título, então trilho, poster e rolagem voltam como estavam sem nenhum código de restauração. O Back é do navegador: **não registre `BackHandler` em tela**. Medido em Release armv7 em 2026-11-04, ver `research/04-navegacao-nativa.md`.
+
+No container, `npm install` exige `--legacy-peer-deps`: o conflito de `@typescript-eslint` já existia e não tem relação com os pacotes do app.
+
 ## Estado conhecido
 
 G1–G6 fechados (detalhe em `research/01-resultado-app-sonda.md`). 

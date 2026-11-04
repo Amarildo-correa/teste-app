@@ -57,20 +57,17 @@ const FOCUS_RING = {
   borderStrokeWidth: 0,
 };
 
-/** Onde um titulo foi aberto: e o que a volta precisa para reencontra-lo. */
-export type RailPosition = {railKey: string; index: number};
-
 type Props = {
   spec: RailSpec;
   titles: TmdbTitle[];
   /** Este trilho e o que tem o foco? */
   active: boolean;
   focusedTitleId: number | null;
-  /** Cartao deste trilho que recebe o foco na montagem; null = nenhum. */
-  preferredIndex: number | null;
+  /** O primeiro cartao deste trilho recebe o foco na montagem? */
+  takesInitialFocus: boolean;
   onRailFocus: (key: string) => void;
   onTitleFocus: (key: string, id: number) => void;
-  onTitlePress: (title: TmdbTitle, position: RailPosition) => void;
+  onTitlePress: (title: TmdbTitle) => void;
 };
 
 export const PosterRail = memo(
@@ -81,7 +78,7 @@ export const PosterRail = memo(
     /* Nao usado mais aqui: quem desenha o anel e o `selectionBorder` do
      * Carousel. Prop mantida para nao mexer no contrato com CatalogScreen. */
     focusedTitleId: _focusedTitleId,
-    preferredIndex,
+    takesInitialFocus,
     onRailFocus,
     onTitleFocus,
     onTitlePress,
@@ -96,14 +93,6 @@ export const PosterRail = memo(
         onTitleFocus(spec.key, id);
       },
       [onRailFocus, onTitleFocus, spec.key],
-    );
-
-    const handleTitlePress = useCallback(
-      (title: TmdbTitle) => {
-        const index = titles.findIndex(t => t.id === title.id);
-        onTitlePress(title, {railKey: spec.key, index: Math.max(0, index)});
-      },
-      [onTitlePress, spec.key, titles],
     );
 
     /* O Carousel nao move o foco real de View para dentro do Pressable de
@@ -163,12 +152,12 @@ export const PosterRail = memo(
           index={index}
           focused={false}
           railActive={active}
-          preferred={preferredIndex === index}
+          preferred={takesInitialFocus && index === 0}
           onFocus={handleTitleFocus}
           accessibilityLabel={`${spec.brand}, catálogo em breve`}
         />
       ),
-      [active, handleTitleFocus, preferredIndex, spec.brand],
+      [active, handleTitleFocus, spec.brand, takesInitialFocus],
     );
 
     const renderTitle = useCallback(
@@ -177,12 +166,12 @@ export const PosterRail = memo(
           title={title}
           focused={false}
           railActive={active}
-          preferred={preferredIndex === index}
+          preferred={takesInitialFocus && index === 0}
           onFocus={handleTitleFocus}
-          onPress={handleTitlePress}
+          onPress={onTitlePress}
         />
       ),
-      [active, handleTitleFocus, handleTitlePress, preferredIndex],
+      [active, handleTitleFocus, onTitlePress, takesInitialFocus],
     );
 
     return (
@@ -217,10 +206,8 @@ export const PosterRail = memo(
           * antigo, que so reagia quando o foco chegava no trilho. Com todo
           * trilho pedindo foco ao montar, nenhum card recebia foco real e o
           * anel amarelo nunca aparecia — medido no aparelho em 2026-11-04.
-          * Quem leva o foco inicial e o `hasTVPreferredFocus` do cartao em
-          * `preferredIndex`. Na volta de um titulo, `initialStartIndex` poe o
-          * mesmo cartao no slot de foco — medido no aparelho em 2026-11-04,
-          * inclusive no ultimo cartao de um trilho. */}
+          * Quem leva o foco inicial e o `hasTVPreferredFocus` do primeiro
+          * cartao do primeiro trilho. */}
         <View style={styles.viewport}>
           {showSkeleton ? (
             <Carousel<number, string>
@@ -241,7 +228,6 @@ export const PosterRail = memo(
               orientation="horizontal"
               dataAdapter={titlesAdapter}
               renderItem={renderTitle}
-              initialStartIndex={preferredIndex ?? 0}
               itemStyle={ITEM_GAP}
               selectionStrategy="anchored"
               navigableScrollAreaMargin={RAIL_MAIN_X}

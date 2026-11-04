@@ -21,9 +21,10 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Animated, StyleSheet, Text, View} from 'react-native';
 import {C, RAIL_BLOCK_H, RAIL_MAIN_X, SAFE_Y, px} from '../theme';
 import {TopBar} from '../components/TopBar';
-import {PosterRail, type RailPosition} from '../components/PosterRail';
+import {PosterRail} from '../components/PosterRail';
 import {LIVE_RAILS, RAILS} from '../data/rails';
 import {discoverNetflix, hasApiKey, type TmdbTitle} from '../data/tmdb';
+import type {ScreenProps} from '../navigation/routes';
 
 const SLIDE_MS = 240;
 /** Quantos blocos de trilho cabem abaixo da barra de topo. */
@@ -48,46 +49,19 @@ export type RailTitles = Record<string, TmdbTitle[]>;
 const stackOffset = (railIndex: number): number =>
   Math.min(railIndex, Math.max(0, RAILS.length - VISIBLE_RAILS)) * RAIL_BLOCK_H;
 
-type Props = {
-  /** Titulos ja buscados nesta sessao; null = ainda nao ha. */
-  cachedRails: RailTitles | null;
-  onRailsLoaded: (rails: RailTitles) => void;
-  /** Titulo que estava aberto; o foco nasce nele. null = primeiro poster. */
-  restore: RailPosition | null;
-  onOpenTitle: (title: TmdbTitle, position: RailPosition) => void;
-  onOpenProbe: () => void;
-};
-
-export const CatalogScreen = ({
-  cachedRails,
-  onRailsLoaded,
-  restore,
-  onOpenTitle,
-  onOpenProbe,
-}: Props): React.JSX.Element => {
+export const CatalogScreen = ({navigation}: ScreenProps<'catalog'>): React.JSX.Element => {
   /** Titulos por chave de trilho. Trilho ausente do mapa = ainda carregando. */
-  const [byRail, setByRail] = useState<RailTitles>(cachedRails ?? {});
-  const [settled, setSettled] = useState<boolean>(cachedRails !== null);
-  const [focusedRail, setFocusedRail] = useState<string>(restore?.railKey ?? RAILS[0].key);
+  const [byRail, setByRail] = useState<RailTitles>({});
+  const [settled, setSettled] = useState<boolean>(false);
+  const [focusedRail, setFocusedRail] = useState<string>(RAILS[0].key);
   const [focusedTitle, setFocusedTitle] = useState<Record<string, number>>({});
   /* Foco na barra de topo nao pode pintar um trilho de amarelo ao mesmo
    * tempo — mesma regra de dois focos que o app-sonda ja seguia. */
   const [barFocused, setBarFocused] = useState<boolean>(false);
 
-  /* Na volta a pilha ja nasce rolada: animar a partir do zero mostraria o
-   * catalogo subindo sozinho com o foco ja no lugar. */
-  const y = useRef(
-    new Animated.Value(
-      -stackOffset(Math.max(0, RAILS.findIndex(r => r.key === restore?.railKey))),
-    ),
-  ).current;
+  const y = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    /* Sem refazer a busca na volta: ela remontaria a pilha (ver `stackKey`)
-     * e jogaria o foco de volta no primeiro poster. */
-    if (cachedRails !== null) {
-      return undefined;
-    }
     let cancelled = false;
     const run = async (): Promise<void> => {
       /* `discoverNetflix` ja engole o proprio erro e devolve lista vazia,
@@ -107,11 +81,6 @@ export const CatalogScreen = ({
       if (!cancelled) {
         const rails: RailTitles = Object.fromEntries(lists);
         setByRail(rails);
-        /* Resposta toda vazia (rede ou TMDB) nao entra no cache, para a
-         * proxima volta ao catalogo ainda tentar de novo. */
-        if (lists.some(([, titles]) => titles.length > 0)) {
-          onRailsLoaded(rails);
-        }
         setSettled(true);
         /* A pilha remonta (ver `stackKey`) e o foco volta para o primeiro
          * poster; o indice de rolagem tem de acompanhar, senao a tela fica
@@ -123,8 +92,6 @@ export const CatalogScreen = ({
     return () => {
       cancelled = true;
     };
-    /* So na montagem: `cachedRails` muda por causa desta propria busca. */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /** Nenhum trilho live trouxe nada, mesmo com chave: rede ou TMDB. */
@@ -160,9 +127,16 @@ export const CatalogScreen = ({
     setFocusedTitle(prev => (prev[key] === id ? prev : {...prev, [key]: id}));
   }, []);
 
+  const handleTitlePress = useCallback(
+    (title: TmdbTitle): void => navigation.navigate('title', {title}),
+    [navigation],
+  );
+
+  const handleOpenProbe = useCallback((): void => navigation.navigate('probe'), [navigation]);
+
   return (
     <View style={styles.screen}>
-      <TopBar onOpenProbe={onOpenProbe} onFocusChange={setBarFocused} />
+      <TopBar onOpenProbe={handleOpenProbe} onFocusChange={setBarFocused} />
 
       {!hasApiKey() ? (
         <Text style={styles.notice} testID="notice-nokey">
@@ -185,7 +159,8 @@ export const CatalogScreen = ({
           * `hasTVPreferredFocus` nao resolve: ele so vale na montagem do
           * elemento, e ate la o foco ja mudou de dono. Remontar a pilha
           * inteira com uma key nova monta tudo de novo ao mesmo tempo, e
-          * ai o preferido ganha. Acontece uma vez por sessao. */}
+          * ai o preferido ganha. Acontece uma vez, na carga inicial; a volta
+          * de um titulo nao passa por aqui, porque a tela segue montada. */}
         <Animated.View key={stackKey} style={{transform: [{translateY: y}]}}>
           {RAILS.map((spec, index) => (
             <PosterRail
@@ -194,18 +169,10 @@ export const CatalogScreen = ({
               titles={byRail[spec.key] ?? []}
               active={focusedRail === spec.key && !barFocused}
               focusedTitleId={focusedTitle[spec.key] ?? null}
-              preferredIndex={
-                restore === null
-                  ? index === 0
-                    ? 0
-                    : null
-                  : restore.railKey === spec.key
-                    ? restore.index
-                    : null
-              }
+              takesInitialFocus={index === 0}
               onRailFocus={handleRailFocus}
               onTitleFocus={handleTitleFocus}
-              onTitlePress={onOpenTitle}
+              onTitlePress={handleTitlePress}
             />
           ))}
         </Animated.View>

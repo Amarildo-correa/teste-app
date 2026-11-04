@@ -5,11 +5,10 @@
  * telas de catalogo e de titulo so vale porque esta medicao existe e pode
  * ser repetida no aparelho a qualquer momento.
  *
- * O layout e o mesmo de antes, com uma unica adicao: `BackHandler`, porque
- * agora ha para onde voltar.
+ * O layout e o mesmo de antes. Voltar e com o navegador.
  */
-import React, {useCallback, useEffect, useState} from 'react';
-import {BackHandler, StyleSheet, Text, View} from 'react-native';
+import React, {useCallback, useState} from 'react';
+import {StyleSheet, Text, View} from 'react-native';
 import {C, SAFE_Y, px} from '../theme';
 import {Main} from '../layout/Main';
 import {Rail} from '../components/Rail';
@@ -20,21 +19,12 @@ import type {ProbeResult} from '../probe/useProviderProbe';
 
 type Props = {
   probe: ProbeResult;
-  onBack: () => void;
 };
 
-export const ProbeScreen = ({probe, onBack}: Props): React.JSX.Element => {
+export const ProbeScreen = ({probe}: Props): React.JSX.Element => {
   const {probes, verdict, detail, lastAction, measuring, reading, open, remeasure} = probe;
   const [focusedKey, setFocusedKey] = useState<string>(PROVIDERS[0].key);
   const [railActive, setRailActive] = useState<boolean>(true);
-
-  useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      onBack();
-      return true;
-    });
-    return () => sub.remove();
-  }, [onBack]);
 
   const handleCardFocus = useCallback((key: string): void => {
     setFocusedKey(key);

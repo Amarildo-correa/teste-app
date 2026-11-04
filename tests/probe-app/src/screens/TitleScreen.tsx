@@ -9,8 +9,8 @@
  * para a pagina da loja. Como o texto visivel nao diz mais qual dos dois vai
  * acontecer, o `accessibilityHint` e o unico lugar que ainda diz.
  */
-import React, {useCallback, useEffect, useState} from 'react';
-import {BackHandler, Image, Linking, StyleSheet, Text, View} from 'react-native';
+import React, {useCallback, useState} from 'react';
+import {Image, Linking, StyleSheet, Text, View} from 'react-native';
 import {BRAND, C, RAIL_MAIN_X, SAFE_Y, px} from '../theme';
 import {Button} from '../components/Button';
 import {buildNetflixTitleUri, NETFLIX_APP_URI} from '../deeplink/netflixTitle';
@@ -25,21 +25,10 @@ type Props = {
   installed: boolean;
   /** Pagina do Netflix na Appstore, para quem nao tem o app. */
   storeId: string | null;
-  onBack: () => void;
 };
 
-export const TitleScreen = ({title, installed, storeId, onBack}: Props): React.JSX.Element => {
+export const TitleScreen = ({title, installed, storeId}: Props): React.JSX.Element => {
   const [status, setStatus] = useState<string>('');
-
-  /* Voltar pelo botao do controle. Sem isso o usuario fica preso na tela do
-   * titulo, porque nao ha barra de navegacao na TV. */
-  useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      onBack();
-      return true;
-    });
-    return () => sub.remove();
-  }, [onBack]);
 
   const handleOpen = useCallback((): void => {
     if (installed) {
