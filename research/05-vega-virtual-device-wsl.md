@@ -14,6 +14,8 @@ Máquina: Windows 11, WSL2 (Ubuntu 26.04, 7,6 GB de RAM), Docker Desktop, sem ne
 | Portal na tela e setas do teclado | funciona | conferido por uma pessoa na janela, com o build das 05:23 |
 | Recompilar e reinstalar com o código atual | sem crash | build de 16 s, `VISIBLE`, `Size: 0`; a tela deste build não foi conferida |
 | `gwsi-tool-screenshooter` | **trava** e gera PNG de 0 byte | testado com e sem janela |
+| `gwsi-tool-screenshooter`, nova medição com o Portal em `VISIBLE` | não trava, mas o PNG continua com 0 byte | `rc=0` em menos de 30 s, com janela |
+| Screenshot pelo console do emulador | funciona | PNG de 1920×1080 e 1,7 MB, com o catálogo do Portal, lido no mesmo dia, com janela; sem janela não foi testado |
 
 ## Receita
 
@@ -69,7 +71,23 @@ docker exec vega-vvd bash -c 'export PATH=/root/vega/bin:/root/vega/node22/bin:$
   vega run-app /root/p.vpkg com.portalprobe.app.main -d VirtualDevice'
 ```
 
-### 4. Desligar
+### 4. Tirar screenshot
+
+O console do emulador captura de fora do sistema convidado, então não depende do `gwsi-tool-screenshooter`.
+
+```bash
+docker exec vega-vvd bash -c 'tok=$(cat /root/.emulator_console_auth_token)
+  exec 3<>/dev/tcp/127.0.0.1/5554
+  mkdir -p /root/shots
+  { echo "auth $tok"; sleep 1; echo "screenrecord screenshot /root/shots"; sleep 6; echo quit; } >&3
+  timeout 10 cat <&3 >/dev/null
+  ls -l /root/shots'
+docker cp vega-vvd:/root/shots ./shots
+```
+
+`vega exec vda emu ...` não serve: o `vda` rejeita os argumentos.
+
+### 5. Desligar
 
 ```bash
 docker exec vega-vvd /root/vega/bin/vega virtual-device stop
@@ -92,7 +110,7 @@ Cada linha é um erro real desta medição. O controle negativo é o próprio er
 
 ## O que o VVD não substitui
 
-- **Medido aqui:** o screenshot do aparelho não funciona, então quem confere a tela do VVD é uma pessoa olhando a janela.
+- **Medido aqui:** o screenshot do aparelho não funciona, então quem confere a tela do VVD é uma pessoa olhando a janela. Corrigido na mesma data: o `gwsi-tool-screenshooter` continua sem funcionar, mas o console do emulador captura a tela (passo 4), e um agente também pode conferi-la.
 - **Pela documentação da Amazon, não medido aqui:** sem DRM em host x86, sem Alexa, e chamadas de Content Launcher vindas do sistema não chegam ao VVD. A documentação também diz que o launcher do Fire TV não está incluído, embora o processo `com.amazon.keplerlauncherapp.main` apareça em `vlcm list`. Não verifiquei se é o mesmo launcher.
 - **Não testado:** detecção de provedores com `canOpenURL`, abertura de outros apps, caminho da loja e transições. O PC x86 também não reproduz o desempenho do armv7. Qualquer portão ou medição de `research/` continua valendo só no Fire Stick.
 
