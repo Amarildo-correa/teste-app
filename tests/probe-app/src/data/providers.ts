@@ -5,8 +5,9 @@
  * Nenhum deles se adivinha: Prime Video e `com.amazon.frenchpress`.
  *
  * Cada `module` precisa estar declarado em `[[wants.module]]` no
- * manifest.toml, senao o provedor aparece como NAO INSTALADO mesmo para quem
- * tem o app. `tests/unit/catalog.test.mjs` trava esse pareamento.
+ * manifest.toml, senao o provedor e tratado como ausente mesmo para quem tem o
+ * app: o botao vai para a loja. `tests/unit/catalog.test.mjs` trava esse
+ * pareamento.
  */
 import {C} from '../theme';
 

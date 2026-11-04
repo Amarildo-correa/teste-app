@@ -93,7 +93,8 @@ vega exec vda shell "vlcm launch-app <uri>"               # aceita URI arbitrár
 Três consequências que mandam no código:
 
 - **`canOpenURL` lança exceção em vez de devolver `false`.** Sem `try/catch` tratando a exceção como "ausente", a primeira ausência derruba a renderização da lista inteira.
-- **Esquecer um `[[wants.module]]` esconde o provedor de todos os usuários** inclusive de quem tem o app — e só se corrige republicando, não pelo backend. `tests/unit/catalog.test.mjs` existe por causa disso.
+- **Esquecer um `[[wants.module]]` faz o provedor ser tratado como ausente para todos os usuários**, inclusive quem tem o app: o botão vai para a loja em vez de abrir o título — e só se corrige republicando, não pelo backend. `tests/unit/catalog.test.mjs` existe por causa disso.
+- **A interface do produto não diz se o app está instalado.** O botão tem rótulo fixo e a detecção só decide o destino: título com o app, loja sem ele. O selo só existe na tela de diagnóstico, atrás do Menu.
 - Só `pkg://` abre app. `https://` vai para o navegador padrão e esquemas do Fire OS (`netflix://`) não resolvem. Os dois estão travados em teste de regressão; se um deles passar a funcionar, a arquitetura mudou.
 
 ### O caminho da loja (provedor ausente)
@@ -146,6 +147,8 @@ No container, `npm install` exige `--legacy-peer-deps`: o conflito de `@typescri
 
 G1–G6 fechados (detalhe em `research/01-resultado-app-sonda.md`). 
 Em aberto:
-`componentId` e `module` dos três provedores ausentes (só saem de um aparelho que tenha o app), R3 (ids de módulo não são API pública) e R4 (política da Appstore sobre lançar concorrentes — consulta, não teste).
+`componentId` e `module` dos três provedores ausentes (só saem de um aparelho que tenha o app) e R4 (política da Appstore sobre lançar concorrentes — consulta, não teste).
+
+R3 (ids de módulo não são API pública) é risco aceito: se um id mudar, o Portal manda para a página do app na loja e o usuário aperta o botão de lá, perdendo só o atalho até o título.
 
 `tests/README.md` está desatualizado: fala em 12 testes de unidade e 5 portões, números anteriores ao caminho da loja.

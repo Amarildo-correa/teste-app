@@ -1,8 +1,8 @@
 /**
- * Cartao de provedor.
+ * Cartao de provedor, usado so na tela de diagnostico.
  *
- * O selo e a acao sao o produto inteiro, dado o escopo: "o usuario tem este
- * app?" e "abra-o".
+ * O selo mostra o resultado de G3 para quem esta medindo. A interface do produto
+ * nao diz se o app esta instalado: o botao do titulo tem rotulo fixo.
  *
  * Foco com quatro sinais redundantes, nunca so cor: borda de 6px, superficie
  * mais clara, acao em destaque e selo invertido.

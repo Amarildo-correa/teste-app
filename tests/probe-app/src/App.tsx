@@ -63,7 +63,8 @@ export const App = (): React.JSX.Element => {
 
   /* `available === true` e o unico valor que vale como "instalado": `null` quer
    * dizer que a medicao ainda nao terminou, e tratar null como instalado
-   * prometeria assistir antes de saber. */
+   * dispararia o deep link sem saber se o app existe. Enquanto mede, o botao vai
+   * para a loja. */
   const installed = netflix !== null && probe.probes[netflix.key]?.available === true;
 
   return (

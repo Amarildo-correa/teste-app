@@ -8,6 +8,8 @@ Pesquisa feita em 2026-11-03 contra o aparelho físico.
 > caminho o único ponto que exigiria acordo comercial — ver §4.2 — e deixa o
 > projeto apoiado inteiramente nos riscos R1 e R2, que o app-sonda fecha.
 
+> **Atualização de 2026-11-04.** O escopo acima descreve a decisão de 2026-11-03 e mudou: a interface do produto não diz mais se o app está instalado. O botão tem rótulo fixo ("Abrir app Netflix e assistir"), e a detecção continua rodando sem aparecer: com o app, abre o título; sem o app, abre a página na loja. O selo só existe na tela de diagnóstico, e o destino só é dito no `accessibilityHint` do botão. Abrir o título também saiu do "fora do escopo" da §4.2, com o `kcp-launch` da Netflix (`research/02-deeplink-netflix.md`).
+
 | | |
 |---|---|
 | Aparelho | Fire TV Stick HD, Vega OS 2.0, armv7 |

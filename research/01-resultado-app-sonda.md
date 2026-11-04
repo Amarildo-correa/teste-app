@@ -78,6 +78,8 @@ catálogo — que é o desenho proposto. Mas a consequência operacional é dura
 Por isso o teste `tests/unit/catalog.test.mjs` cruza o catálogo com o
 manifesto: é a trava contra esse erro.
 
+**Atualização de 2026-11-04:** sem selo na interface do produto, esse erro não mostra informação falsa. Quem tem o app é tratado como ausente: o botão abre a página na loja, em vez do título, e de lá o usuário pode apertar "Abrir". O conserto continua exigindo republicar.
+
 ## G4 — abrir funciona
 
 | Ação | `vlcm list` logo depois |
@@ -227,6 +229,7 @@ teste até perceber.
 - **R3 — estabilidade dos ids de módulo.** `/tv.pluto.android.module@ISomeUri1`
   tem cara de interno. Só o tempo diz; mitigação é o catálogo vir do backend
   e o `[[wants.module]]` ser generoso desde a v1.
+  **Atualização de 2026-11-04 — risco aceito por decisão de produto, não por medição:** se um id mudar, o Portal manda para a página do app na loja e o usuário aperta o botão de lá (instalar ou abrir). O custo é um passo a mais e a perda do atalho até o título. Só deixa de funcionar se o package id também mudar.
 - **R4 — política da Appstore** sobre um app que lança concorrentes. É
   consulta à Amazon, não teste.
 - **Estabilidade do deep link da loja.** `amzn://apps/android?p=` é o esquema

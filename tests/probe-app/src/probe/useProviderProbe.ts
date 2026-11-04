@@ -2,13 +2,13 @@
  * A medicao em si — G3 e G4 isolados da interface.
  *
  * G3: `Linking.canOpenURL('pkg://<componente>')` distingue app disponivel de
- *     app ausente?  E o selo INSTALADO.
+ *     app ausente?  Decide o destino do botao do titulo e o selo do diagnostico.
  * G4: `Linking.openURL(...)` traz o app de streaming para a frente?
- *     E o "Abrir no app".
+ *     E o "Abrir no app" do diagnostico.
  *
  * Medido no aparelho em 2026-11-03: canOpenURL devolve `true` para app
  * disponivel e **lanca excecao** para ausente, em vez de devolver `false`.
- * Lanca tambem discrimina, entao o selo funciona — mas so com try/catch.
+ * Lanca tambem discrimina, entao a deteccao funciona — mas so com try/catch.
  * Um canOpenURL solto derruba a renderizacao da lista inteira.
  */
 import {useCallback, useEffect, useMemo, useState} from 'react';
