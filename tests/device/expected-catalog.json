@@ -1,0 +1,165 @@
+{
+  "_comment": "Catálogo de provedores coletado do Fire TV Stick HD (Vega OS 2.0, serial <serial-omitido>) em 2026-11-03 via `vpm list apps --category=com.amazon.category.main` e `vpm info <pkg> --package`. Serve de fixture para os testes e de semente para o catálogo do app-portal.",
+  "device": {
+    "model": "Fire TV Stick HD",
+    "os": "Vega OS 2.0",
+    "arch": "armv7",
+    "serial": "<serial-omitido>",
+    "address": "192.168.1.2:5555",
+    "launchableComponents": 57,
+    "systemModules": 380
+  },
+  "providers": [
+    {
+      "name": "Prime Video",
+      "packageId": "com.amazon.frenchpress",
+      "componentId": "com.amazon.frenchpress.main",
+      "module": "/com.amazon.frenchpress.main@IDeeplinks",
+      "senderPrivilege": "*",
+      "installed": true,
+      "distributor": "Amazon Devices and Services Root CA",
+      "hasContentLauncherProvider": true,
+      "notes": "Expõe com.amazon.frenchpress.interface.provider (Content Launcher). O sufixo @IDeeplinks sugere URIs de conteúdo além do pkg:// de abertura.",
+      "storePageVerified": "2026-11-03"
+    },
+    {
+      "name": "Netflix",
+      "packageId": "com.netflix.kepler",
+      "componentId": "com.netflix.kepler.main",
+      "module": "/com.netflix.kepler.module@IMod1",
+      "senderPrivilege": "*",
+      "installed": true,
+      "distributor": "terceiro (Appstore)",
+      "hasContentLauncherProvider": true,
+      "notes": "Expõe com.netflix.kepler.interface.provider.",
+      "storePageVerified": "2026-11-03"
+    },
+    {
+      "name": "Apple TV",
+      "packageId": "com.apple.atve.amazon.appletv",
+      "componentId": "com.apple.atve.amazon.appletv.main",
+      "module": "/com.apple.atve.amazon.appletv@IMod1",
+      "senderPrivilege": "*",
+      "installed": true,
+      "distributor": "terceiro (Appstore)",
+      "hasContentLauncherProvider": true,
+      "notes": "Expõe com.apple.atve.amazon.appletv.interface.provider.",
+      "storePageVerified": "2026-11-03"
+    },
+    {
+      "name": "Pluto TV",
+      "packageId": "tv.pluto.android",
+      "componentId": "tv.pluto.android.main",
+      "module": "/tv.pluto.android.module@ISomeUri1",
+      "senderPrivilege": "*",
+      "installed": true,
+      "distributor": "terceiro (Appstore)",
+      "hasContentLauncherProvider": true,
+      "notes": "Também publica /tv.pluto.android.main@IPlutoDefault. O id 'ISomeUri1' tem cara de interno — risco R3, pode mudar numa atualização.",
+      "storePageVerified": "2026-11-03"
+    },
+    {
+      "name": "YouTube",
+      "packageId": "com.amazon.firetv.youtube",
+      "componentId": "com.amazon.firetv.youtube.main",
+      "module": "/com.amazon.firetv.youtube.module@IMod1",
+      "senderPrivilege": "*",
+      "installed": true,
+      "distributor": "Amazon",
+      "hasContentLauncherProvider": false
+    },
+    {
+      "name": "Amazon Music",
+      "packageId": "com.amazon.music.kepler",
+      "componentId": "com.amazon.music.kepler.main",
+      "module": "/com.amazon.music.kepler.module@IAmazonMusicModule1",
+      "senderPrivilege": "*",
+      "installed": true,
+      "distributor": "Amazon",
+      "hasContentLauncherProvider": false,
+      "notes": "Também publica /com.amazon.music.kepler@IDeeplinks."
+    }
+  ],
+  "absentProviders": {
+    "_comment": "Streamings reais confirmados AUSENTES deste Fire Stick (`vpm list packages`, 2026-11-03). Servem de controle negativo realista e testam se o build aceita [[wants.module]] de modulo inexistente no sistema — a situacao de todo usuario que nao tem o app.",
+    "_warning": "packageId dos tres foi CONFIRMADO em 2026-11-03 abrindo a pagina de cada um na Appstore do proprio aparelho (amzn://apps/android?p=<packageId>) e lendo o titulo e o botao. Foi assim que `com.wbd.stream` (tela de Erro) virou `com.hbo.hbonow` e `com.globo.globoplay` virou `com.globo.globotv`. idVerified continua false porque componentId e module NAO foram lidos de um aparelho que tenha o app: sao o packageId + '.main' e um @IMod1 de palpite, no padrao dos confirmados. Com o app ausente, id certo e errado dao o mesmo canOpenURL, entao o teste nao distingue — so a instalacao distingue.",
+    "providers": [
+      {
+        "name": "Disney+",
+        "packageId": "com.disney.disneyplus",
+        "componentId": "com.disney.disneyplus.main",
+        "module": "/com.disney.disneyplus.module@IMod1",
+        "installed": false,
+        "idVerified": false,
+        "storePageVerified": "2026-11-03",
+        "notes": "Pagina da loja abre como 'Disney+' (Disney Electronic Content), botao Baixar."
+      },
+      {
+        "name": "Max",
+        "packageId": "com.hbo.hbonow",
+        "componentId": "com.hbo.hbonow.main",
+        "module": "/com.hbo.hbonow.module@IMod1",
+        "installed": false,
+        "idVerified": false,
+        "storePageVerified": "2026-11-03",
+        "notes": "Pagina da loja abre como 'HBO Max' (WarnerMedia), botao Comprar/Gratis para baixar. O palpite anterior com.wbd.stream dava a tela de Erro da loja."
+      },
+      {
+        "name": "Globoplay",
+        "packageId": "com.globo.globotv",
+        "componentId": "com.globo.globotv.main",
+        "module": "/com.globo.globotv.module@IMod1",
+        "installed": false,
+        "idVerified": false,
+        "storePageVerified": "2026-11-03",
+        "notes": "Pagina da loja abre como 'Globoplay' (Globo), botao Baixar. Antes: com.globo.globoplay."
+      }
+    ]
+  },
+  "fallback": {
+    "appstoreHome": {
+      "componentId": "com.amazon.appstorevegatv.main",
+      "module": null,
+      "senderCheck": "PASS",
+      "notes": "Passa sem declarar módulo nenhum. Fallback mais seguro."
+    },
+    "appstoreDetails": {
+      "componentId": "com.amazon.appstorevegatv.details",
+      "module": "/com.amazon.appstorevegatv@IDeepLinkAccessModule",
+      "senderPrivilege": "*",
+      "notes": "Pagina do app na loja — usar quando o provedor nao esta instalado. Medido do proprio app com Linking.openURL, sem privilegio extra: a loja vem para a frente e o BACK devolve o portal sem crash. O parametro ?p= quer o packageId (o mesmo do Vega).",
+      "uriTemplate": "amzn://apps/android?p=<packageId>",
+      "acceptedUris": [
+        "amzn://apps",
+        "amzns://apps",
+        "http://www.amazon.com/gp/mas/dl/android",
+        "https://www.amazon.com/gp/mas/dl/android"
+      ],
+      "verified": "2026-11-03",
+      "failureModes": {
+        "unknownPackage": "openURL RESOLVE e a loja pinta 'Erro / Go Back' em tela cheia. Nao da para detectar depois: barrar antes, com storeId=null.",
+        "wrongPlatformPackage": "com.netflix.ninja (entrada Android TV) abre a pagina certa do Netflix com o botao 'Indisponivel'. Parece sucesso e nao e.",
+        "searchQuery": "amzn://apps/android?s=<termo> entra na loja e fica num spinner que nao termina. Nao serve de plano B."
+      }
+    }
+  },
+  "negativeCases": {
+    "_comment": "Confirmados como NÃO funcionais. Os testes devem travar isso para ninguém reintroduzir deep links de Fire OS.",
+    "customSchemes": {
+      "netflix://": "No module found for URI",
+      "_note": "Esquemas customizados do Fire OS não estão registrados no Vega."
+    },
+    "httpsLinks": {
+      "canonicalUri": "https://",
+      "module": "/com.amazon.kepler.os_messages@IOsMessageModule",
+      "receiverPrivilege": "com.amazon.messaging.privilege.assume-default-browser-role",
+      "_note": "Qualquer https:// vai para o navegador padrão, não para o app. Vale para netflix.com, app.primevideo.com, tv.apple.com, pluto.tv, youtube.com."
+    }
+  },
+  "discoveryApi": {
+    "available": false,
+    "privilege": "com.amazon.privilege.package.query",
+    "requirement": "platform signature",
+    "_note": "Enumerar apps instalados é impossível para app de terceiro. @amazon-devices/package-manager-lib também não está no npm público."
+  }
+}

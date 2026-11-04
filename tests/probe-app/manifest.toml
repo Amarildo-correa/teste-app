@@ -1,0 +1,96 @@
+schema-version = 1
+
+[package]
+title = "Portal Probe"
+version = "0.1.0"
+build-number = 1
+id = "com.portalprobe.app"
+icon = "@image/app_icon.png"
+
+[os.version]
+min = "2.0"
+target = "2.0"
+
+# ---------------------------------------------------------------------------
+# O TESTE.
+#
+# [wants] = dependencias OPCIONAIS. A documentacao do manifesto garante:
+#   "Application packages are expected to continue to function if the wanted
+#    module is not available on a Vega system."
+#
+# Declarar aqui modulos que pertencem a OUTROS fornecedores e exatamente o
+# risco R1. Se `vega build` recusar, a arquitetura do portal muda.
+#
+# Como sao [wants] e nao [needs], um provedor ausente nao impede a instalacao
+# do portal -- e e isso que da a deteccao de "instalado".
+#
+# Ids coletados do aparelho em 2026-11-03 (tests/device/expected-catalog.json).
+# Nao sao API publica: confira com `vpm list modules` quando algo quebrar.
+# ---------------------------------------------------------------------------
+[wants]
+[[wants.module]]
+id = "/com.amazon.kepler.net.net_manager@INetManager"
+
+[[wants.module]]
+id = "/com.amazon.frenchpress.main@IDeeplinks"                  # Prime Video
+
+[[wants.module]]
+id = "/com.netflix.kepler.module@IMod1"                         # Netflix
+
+[[wants.module]]
+id = "/com.apple.atve.amazon.appletv@IMod1"                     # Apple TV
+
+[[wants.module]]
+id = "/tv.pluto.android.module@ISomeUri1"                       # Pluto TV
+
+[[wants.module]]
+id = "/com.amazon.firetv.youtube.module@IMod1"                  # YouTube
+
+[[wants.module]]
+id = "/com.amazon.music.kepler.module@IAmazonMusicModule1"      # Amazon Music
+
+[[wants.module]]
+id = "/com.amazon.appstorevegatv@IDeepLinkAccessModule"         # loja (fallback)
+
+# --- modulos de apps que NAO estao neste aparelho -------------------------
+# packageId CONFIRMADO em 2026-11-03 abrindo a pagina de cada um na Appstore;
+# o nome do modulo abaixo continua palpite. O que eles
+# testam e se o build aceita declarar um modulo inexistente no sistema --
+# a situacao de todo usuario que nao tem Disney+. Se recusar, o portal nao
+# pode pre-declarar provedores, e so da para mostrar o que o usuario ja tem.
+[[wants.module]]
+id = "/com.disney.disneyplus.module@IMod1"                      # Disney+ (ausente)
+
+[[wants.module]]
+id = "/com.hbo.hbonow.module@IMod1"                             # Max (ausente)
+
+[[wants.module]]
+id = "/com.globo.globotv.module@IMod1"                          # Globoplay (ausente)
+
+[[wants.service]]
+id = "com.amazon.audio.system"
+
+# ---------------------------------------------------------------------------
+# Icones do Material, pelo pacote portado pela Amazon
+# (@amazon-devices/react-native-vector-icons).
+#
+# E [needs], nao [wants], porque o botao do app desenha o glifo SEMPRE: sem o
+# modulo a tela nao se monta. Medido em 2026-11-04 — instalar sem esta linha
+# compila e instala normalmente, e o app **crasha ao abrir**
+# (`vlcm crash-history` registra com LCM_APP_IN_FOREGROUND: true). O pacote
+# declara a exigencia no proprio `kepler-system-conf.toml`, mas o
+# `build-vega` NAO a propaga para o manifesto do app.
+#
+# O modulo e deployado pelo sistema: `vpm list modules` o lista no Fire TV
+# Stick com Vega OS 2.0.
+# ---------------------------------------------------------------------------
+[needs]
+[[needs.module]]
+id = "/com.amazon.kepler.vector_icons_2@IVectorIcons_1"
+
+[components]
+[[components.interactive]]
+id = "com.portalprobe.app.main"
+runtime-module = "/com.amazon.kepler.runtime.react_native_kepler_4@IReactNativeKepler_0"
+launch-type = "singleton"
+categories = ["com.amazon.category.main"]

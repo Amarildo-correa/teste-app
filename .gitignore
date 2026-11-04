@@ -1,0 +1,21 @@
+# Segredos — nunca versionar
+#
+# A chave do TMDB fica em tmdbKey.ts, que e IGNORADO. O que entra no
+# repositorio e o tmdbKey.example.ts, sem valor nenhum. Quem clona roda
+# `node scripts/prepare-config.mjs` (ou qualquer `npm run build:*`, que ja
+# chama o script) e ganha um tmdbKey.ts vazio — o app compila e sobe com os
+# trilhos em esqueleto ate alguem por a chave.
+tests/probe-app/src/config/tmdbKey.ts
+.env
+.env.local
+
+# Build
+tests/probe-app/node_modules/
+tests/probe-app/build/
+tests/probe-app/dist/
+tests/probe-app/buildinfo.json
+*.vpkg
+
+# Sistema
+.DS_Store
+*.log
