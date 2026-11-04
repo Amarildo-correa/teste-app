@@ -84,3 +84,15 @@ Lido na TV pelo responsável pelo projeto: ao apertar OK, o card encolhe; ao vol
 A tela do título agora abre 200 ms depois do OK (150 ms do encolher do card mais uma folga), para a animação aparecer inteira. Aprovado na TV pelo responsável pelo projeto.
 
 Não testado: as guardas de segundo OK e de Menu durante a espera. Cada tecla por `inputd-cli` leva cerca de 390 ms, mais que a janela, então nenhuma delas disparou. Fora da janela, o segundo OK aciona o botão da tela do título e abre o Netflix (medido); isso já valia antes da espera.
+
+## Transição entre telas — 2026-11-04
+
+| Tentativa | Resultado na TV |
+|---|---|
+| `animation: 'fade'` na pilha | rejeitada: feia |
+| `animation: 'default'` na pilha | rejeitada: só a coluna de dados do título piscava |
+| `Animated` do React Native na tela do título: escala de 90% a 100% com opacidade, 200 ms, nos dois sentidos | aprovada |
+
+Com a animação, o fundo branco do tema padrão do navegador aparecia como um flash. O tema e o `contentStyle` agora usam `C.bg`, e o flash sumiu, conferido na TV.
+
+O Back espera a saída por `beforeRemove`. O segundo Back durante os 200 ms não foi testado: cada tecla por script leva cerca de 390 ms. O custo da animação no armv7 não foi medido.

@@ -9,12 +9,19 @@
  * para a pagina da loja. Como o texto visivel nao diz mais qual dos dois vai
  * acontecer, o `accessibilityHint` e o unico lugar que ainda diz.
  */
-import React, {useCallback, useState} from 'react';
-import {Image, Linking, StyleSheet, Text, View} from 'react-native';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {Animated, Image, Linking, StyleSheet, Text, View} from 'react-native';
+import {useNavigation} from '@amazon-devices/react-navigation__native';
 import {BRAND, C, RAIL_MAIN_X, SAFE_Y, px} from '../theme';
 import {Button} from '../components/Button';
 import {buildNetflixTitleUri, NETFLIX_APP_URI} from '../deeplink/netflixTitle';
 import type {TmdbTitle} from '../data/tmdb';
+
+/* Entra crescendo e sai encolhendo, com o Animated do RN na camada nativa. A
+ * opcao `animation` da pilha nao tem escala, e `fade` e `default` foram rejeitados
+ * na TV em 2026-11-04. */
+const TRANSITION_MS = 200;
+const HIDDEN_SCALE = 0.9;
 
 /** Rotulo fixo: nao muda com o app instalado ou ausente. */
 const ACTION = 'Abrir app Netflix e assistir';
@@ -29,6 +36,44 @@ type Props = {
 
 export const TitleScreen = ({title, installed, storeId}: Props): React.JSX.Element => {
   const [status, setStatus] = useState<string>('');
+  const navigation = useNavigation();
+  const progress = useRef(new Animated.Value(0)).current;
+  const closing = useRef<boolean>(false);
+
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: TRANSITION_MS,
+      useNativeDriver: true,
+    }).start();
+  }, [progress]);
+
+  /* Segura o Back ate a tela encolher. O segundo Back durante a saida e ignorado. */
+  useEffect(
+    () =>
+      navigation.addListener('beforeRemove', event => {
+        if (closing.current) {
+          return;
+        }
+        event.preventDefault();
+        closing.current = true;
+        Animated.timing(progress, {
+          toValue: 0,
+          duration: TRANSITION_MS,
+          useNativeDriver: true,
+        }).start(() => navigation.dispatch(event.data.action));
+      }),
+    [navigation, progress],
+  );
+
+  const transition = {
+    opacity: progress,
+    transform: [
+      {
+        scale: progress.interpolate({inputRange: [0, 1], outputRange: [HIDDEN_SCALE, 1]}),
+      },
+    ],
+  };
 
   const handleOpen = useCallback((): void => {
     if (installed) {
@@ -57,7 +102,7 @@ export const TitleScreen = ({title, installed, storeId}: Props): React.JSX.Eleme
   const year = title.year ? ` (${title.year})` : '';
 
   return (
-    <View style={styles.screen}>
+    <Animated.View style={[styles.screen, transition]}>
       <View style={styles.dataColumn}>
         <Text numberOfLines={1} style={styles.brand}>
           NETFLIX
@@ -107,7 +152,7 @@ export const TitleScreen = ({title, installed, storeId}: Props): React.JSX.Eleme
           />
         ) : null}
       </View>
-    </View>
+    </Animated.View>
   );
 };
 

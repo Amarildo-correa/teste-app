@@ -18,6 +18,7 @@ import React, {useMemo} from 'react';
 import {useTVEventHandler, type HWEvent} from '@amazon-devices/react-native-kepler';
 import {enableFreeze, enableScreens} from '@amazon-devices/react-native-screens';
 import {
+  DarkTheme,
   NavigationContainer,
   createNavigationContainerRef,
 } from '@amazon-devices/react-navigation__native';
@@ -25,6 +26,7 @@ import {createNativeStackNavigator} from '@amazon-devices/react-navigation__nati
 import {CatalogScreen} from './screens/CatalogScreen';
 import {TitleScreen} from './screens/TitleScreen';
 import {ProbeScreen} from './screens/ProbeScreen';
+import {C} from './theme';
 import {PROVIDERS} from './data/providers';
 import {useProviderProbe} from './probe/useProviderProbe';
 import type {RootStackParamList} from './navigation/routes';
@@ -35,7 +37,17 @@ enableFreeze();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
-const SCREEN_OPTIONS = {headerShown: false, animation: 'none'} as const;
+/* Sem animacao: `fade` e `default` foram testados e rejeitados na TV em
+ * 2026-11-04. No `default`, so a coluna de dados do titulo piscava. */
+const SCREEN_OPTIONS = {
+  headerShown: false,
+  animation: 'none',
+  contentStyle: {backgroundColor: C.bg},
+} as const;
+
+/* O fundo do tema aparece atras da tela enquanto ela anima: com o tema padrao era
+ * branco, e a troca de tela piscava (visto na TV em 2026-11-04). */
+const NAV_THEME = {...DarkTheme, colors: {...DarkTheme.colors, background: C.bg}};
 
 export const App = (): React.JSX.Element => {
   const probe = useProviderProbe();
@@ -55,7 +67,7 @@ export const App = (): React.JSX.Element => {
   const installed = netflix !== null && probe.probes[netflix.key]?.available === true;
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} theme={NAV_THEME}>
       <Stack.Navigator initialRouteName="catalog" screenOptions={SCREEN_OPTIONS}>
         <Stack.Screen name="catalog" component={CatalogScreen} />
         <Stack.Screen name="title">

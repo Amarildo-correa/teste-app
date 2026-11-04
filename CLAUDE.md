@@ -126,6 +126,7 @@ Mudar um provedor significa mudar os três; o teste de unidade é a trava:
 Isto é o que distingue este repositório de um protótipo, e o que mais importa
 preservar:
 
+- **Simples primeiro.** Proponha antes a solução mais simples que resolve o pedido, em resposta curta. Pacote novo, troca de arquitetura e bateria de testes só se o simples falhar. O que é visual, peça para uma pessoa conferir na TV.
 - **Não escreva na mão o que já existe pronto.** Use componentes prontos e bibliotecas em vez de implementação própria.
 - **Teste que não morde não vale.** Ao acrescentar invariante, verifique por mutação: quebre o dado de propósito, confirme que o teste falha, restaure.
 - **Os documentos preservam o histórico.** A tabela de portões diz "6/6" no G3 e "8/8" no G5 porque o catálogo cresceu entre as duas medições. Não reescreva números antigos para ficarem bonitos; acrescente a medição nova.
@@ -136,6 +137,8 @@ preservar:
 `@amazon-devices/react-navigation__native-stack` (rotas em `tests/probe-app/src/navigation/routes.ts`). O catálogo fica montado por baixo do título, então trilho, poster e rolagem voltam como estavam sem nenhum código de restauração. O Back é do navegador: **não registre `BackHandler` em tela**. Medido em Release armv7 em 2026-11-04, ver `research/04-navegacao-nativa.md`.
 
 Os trilhos paginam sob demanda (`tests/probe-app/src/data/railPager.js`, em JS com tipos em `.d.ts` porque o Node do WSL não carrega `.ts`). Página nova entra por `notifyDataChange`, nunca por prop: o Carousel de fora não redesenha item montado.
+
+A troca de tela usa o `Animated` do React Native em `TitleScreen.tsx`: escala com opacidade, 200 ms, `useNativeDriver`. A opção `animation` da pilha fica em `none`: ela não tem escala, e `fade` e `default` foram rejeitados na TV (no `default`, só a coluna de dados piscava). O fundo da navegação usa `C.bg` no tema e no `contentStyle`; sem isso, a transição pisca em branco.
 
 No container, `npm install` exige `--legacy-peer-deps`: o conflito de `@typescript-eslint` já existia e não tem relação com os pacotes do app.
 
