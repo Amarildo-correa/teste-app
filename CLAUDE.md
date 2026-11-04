@@ -4,9 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## O que é este repositório
 
-Pesquisa de viabilidade — **não um produto** — para um "Portal de Streamings"
-no Vega OS (Amazon Fire TV). Cada afirmação aqui foi **medida contra um Fire
-TV Stick físico**; o repositório é o registro dessas medições.
+Pesquisa de viabilidade e desenvolvimento de produto em produção — para um "Portal de Streamings" no Vega OS (Amazon Fire TV). Cada afirmação aqui foi **medida contra um Fire TV Stick físico**; o repositório é o registro dessas medições.
 
 ```
 research/     os achados, em prosa — leia antes de mexer em qualquer coisa
@@ -15,18 +13,13 @@ tests/device/ premissas do aparelho, só leitura
 tests/probe-app/  o app-sonda: React Native for Vega que prova os portões G1–G6
 ```
 
-Aparelho de referência: Fire TV Stick HD, Vega OS 2.0, armv7,
-`192.168.1.2:5555`. O IP vem de DHCP e muda.
+Aparelho de referência: Fire TV Stick HD, Vega OS 2.0, armv7, `192.168.1.2:5555`. O IP vem de DHCP e muda.
 
 ## Git
 
-Repositório iniciado em 2026-11-04, branch padrão `main`, com remoto **público** em
-https://github.com/Amarildo-correa/teste-app. O que veio antes dessa data não tem
-histórico. `tests/probe-app/src/config/tmdbKey.ts` guarda a chave do TMDB e é
-ignorado pelo `.gitignore`; só o `tmdbKey.example.ts` é versionado.
+Repositório iniciado em 2026-11-04, branch padrão `main`, com remoto **público** em https://github.com/Amarildo-correa/teste-app. O que veio antes dessa data não tem histórico. `tests/probe-app/src/config/tmdbKey.ts` guarda a chave do TMDB e é ignorado pelo `.gitignore`; só o `tmdbKey.example.ts` é versionado.
 
-Por ser público, o serial do aparelho não entra no repositório: nos documentos e
-fixtures ele aparece como `<serial-omitido>`.
+Por ser público, o serial do aparelho não entra no repositório: nos documentos e fixtures ele aparece como `<serial-omitido>`.
 
 ## Comandos
 
@@ -38,9 +31,7 @@ tests/device/probe-catalog.sh [IP:PORTA]                 # ~40 s, não toca na t
 
 ### Build, instalação e execução — rodam no container, não no WSL
 
-`tests/probe-app/` **não tem `node_modules` nem `tsconfig.json`**. É a fonte
-da verdade do código; o projeto que compila vive em `/root/work` dentro do
-container Docker `vega-sdk-dl`. O ciclo:
+`tests/probe-app/` **não tem `node_modules` nem `tsconfig.json`**. É a fonte da verdade do código; o projeto que compila vive em `/root/work` dentro do container Docker `vega-sdk-dl`. O ciclo:
 
 ```bash
 cd tests/probe-app
@@ -59,18 +50,12 @@ docker exec vega-sdk-dl bash -lc 'export PATH=/root/vega/bin:/root/vega/node22/b
 
 Armadilhas do container, todas já pagas uma vez:
 
-- O Node fica em `/root/vega/node22/bin` e **não está no PATH**. Sem isso,
-  `npx` e `react-native` respondem *command not found* e o `.bin/tsc` falha
-  com `/usr/bin/env: 'node': No such file or directory`.
+- O Node fica em `/root/vega/node22/bin` e **não está no PATH**. Sem isso, `npx` e `react-native` respondem *command not found* e o `.bin/tsc` falha com `/usr/bin/env: 'node': No such file or directory`.
 - `vega device launch-app` quer `--appName <componente>`, com o `.main`.
 - `eslint` emite ~7 *warnings* conhecidos (biblioteca SDL, props de
   acessibilidade depreciadas). O que importa é **0 errors**.
-- O ícone do `manifest.toml` (`assets/image/app_icon.png`, exatamente
-  512×512) também é o tile do app sideloaded em "Seus aplicativos e canais",
-  onde aparece cortado em faixa horizontal: só o miolo vertical do quadrado fica
-  visível (medido em 2026-11-04). O conteúdo precisa ficar centralizado.
-- A imagem de capa do launcher (app em foco) não sai do pacote: é asset da ficha
-  na Appstore. Sideloaded mostra fundo preto. Ver
+- O ícone do `manifest.toml` (`assets/image/app_icon.png`, exatamente 512×512) também é o tile do app sideloaded em "Seus aplicativos e canais", onde aparece cortado em faixa horizontal: só o miolo vertical do quadrado fica visível (medido em 2026-11-04). O conteúdo precisa ficar centralizado.
+- A imagem de capa do launcher (app em foco) não sai do pacote: é asset da ficha na Appstore. Sideloaded mostra fundo preto. Ver
   `research/03-capa-launcher.md`.
 
 ### Ver a tela e apertar botões
@@ -99,35 +84,23 @@ vega exec vda shell "vlcm launch-app <uri>"               # aceita URI arbitrár
 
 ## A ideia central, que não está em nenhum arquivo isolado
 
-**Não existe API para enumerar apps instalados** por um app de terceiro
-(exige assinatura de plataforma). Todo o portal se apoia num efeito colateral:
+**Não existe API para enumerar apps instalados** por um app de terceiro (exige assinatura de plataforma). Todo o portal se apoia num efeito colateral:
 
 1. Cada provedor é declarado em `[[wants.module]]` no `manifest.toml`.
-2. `Linking.canOpenURL('pkg://<componente>')` responde se dá para falar com
-   aquele app — o que, para os provedores declarados, equivale a "instalado".
+2. `Linking.canOpenURL('pkg://<componente>')` responde se dá para falar com aquele app — o que, para os provedores declarados, equivale a "instalado".
 3. `Linking.openURL(...)` traz o app para a frente.
 
 Três consequências que mandam no código:
 
-- **`canOpenURL` lança exceção em vez de devolver `false`.** Sem `try/catch`
-  tratando a exceção como "ausente", a primeira ausência derruba a
-  renderização da lista inteira.
-- **Esquecer um `[[wants.module]]` esconde o provedor de todos os usuários**,
-  inclusive de quem tem o app — e só se corrige republicando, não pelo
-  backend. `tests/unit/catalog.test.mjs` existe por causa disso.
-- Só `pkg://` abre app. `https://` vai para o navegador padrão e esquemas do
-  Fire OS (`netflix://`) não resolvem. Os dois estão travados em teste de
-  regressão; se um deles passar a funcionar, a arquitetura mudou.
+- **`canOpenURL` lança exceção em vez de devolver `false`.** Sem `try/catch` tratando a exceção como "ausente", a primeira ausência derruba a renderização da lista inteira.
+- **Esquecer um `[[wants.module]]` esconde o provedor de todos os usuários** inclusive de quem tem o app — e só se corrige republicando, não pelo backend. `tests/unit/catalog.test.mjs` existe por causa disso.
+- Só `pkg://` abre app. `https://` vai para o navegador padrão e esquemas do Fire OS (`netflix://`) não resolvem. Os dois estão travados em teste de regressão; se um deles passar a funcionar, a arquitetura mudou.
 
 ### O caminho da loja (provedor ausente)
 
-`amzn://apps/android?p=<storeId>` abre a página do app na Appstore, do
-próprio app, sem privilégio extra. O `storeId` **é o mesmo package id do
-Vega** — `uri` é sempre `pkg://<storeId>.main`, e quando os dois discordam um
-deles foi chutado (foi assim que dois ids errados do catálogo apareceram).
+`amzn://apps/android?p=<storeId>` abre a página do app na Appstore, do próprio app, sem privilégio extra. O `storeId` **é o mesmo package id do Vega** — `uri` é sempre `pkg://<storeId>.main`, e quando os dois discordam um deles foi chutado (foi assim que dois ids errados do catálogo apareceram).
 
-Nenhum dos modos de falha rejeita a promise, então **a guarda tem de estar no
-catálogo, antes do `openURL`**:
+Nenhum dos modos de falha rejeita a promise, então **a guarda tem de estar no catálogo, antes do `openURL`**:
 
 | Entrada | O que acontece |
 |---|---|
@@ -135,8 +108,7 @@ catálogo, antes do `openURL`**:
 | package de outra plataforma (`com.netflix.ninja`) | página certa, botão "Indisponível" — parece sucesso |
 | busca (`?s=<termo>`) | spinner que não termina |
 
-Critério de aceitação de um `storeId` novo: abrir a página num aparelho e
-**ler o botão** — "Abrir" (instalado), "Baixar"/"Comprar" (ausente),
+Critério de aceitação de um `storeId` novo: abrir a página num aparelho e **ler o botão** — "Abrir" (instalado), "Baixar"/"Comprar" (ausente),
 "Indisponível" (errado), tela de Erro (não existe).
 
 ## Os três arquivos que precisam andar juntos
