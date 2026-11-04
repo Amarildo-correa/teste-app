@@ -10,56 +10,65 @@
  * esqueleto no fim. Em paralelo, a espera e a da consulta mais lenta.
  *
  * Rolagem vertical pelo mesmo principio do trilho horizontal: o foco fica
- * parado no primeiro bloco visivel e a pilha desliza por baixo. Nada de
- * ScrollView — no controle remoto o que o usuario precisa e que o item
- * focado esteja SEMPRE no mesmo lugar da tela.
- *
- * A ultima faixa nao sobe ate o topo de proposito (o clamp em `maxOffset`):
- * subir deixaria a tela com a metade de baixo vazia.
+ * parado no primeiro bloco visivel e a pilha desliza por baixo. Quem faz isso
+ * e um Carousel vertical com os trilhos dentro, o padrao aninhado do pacote
+ * (`uniqueId`). Ele recicla: so `RENDERED_RAILS` trilhos existem na arvore, e
+ * cada trilho so desenha alguns cartoes, seja qual for o tamanho do catalogo.
  */
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {Animated, StyleSheet, Text, View} from 'react-native';
-import {C, RAIL_BLOCK_H, RAIL_MAIN_X, SAFE_Y, px} from '../theme';
+import {StyleSheet, Text, View} from 'react-native';
+import {
+  Carousel,
+  type CarouselItemDataAdapter,
+  type CarouselRenderInfo,
+  type CarouselSelectionChangeEvent,
+} from '@amazon-devices/vega-carousel';
+import {C, RAIL_MAIN_X, SAFE_Y, SCREEN_W, px} from '../theme';
 import {TopBar} from '../components/TopBar';
-import {PosterRail} from '../components/PosterRail';
-import {LIVE_RAILS, RAILS} from '../data/rails';
+import {PosterRail, RailFocusContext} from '../components/PosterRail';
+import {LIVE_RAILS, RAILS, type RailSpec} from '../data/rails';
 import {discoverNetflix, hasApiKey, type TmdbTitle} from '../data/tmdb';
 import type {ScreenProps} from '../navigation/routes';
 
-const SLIDE_MS = 240;
-/** Quantos blocos de trilho cabem abaixo da barra de topo. */
-const VISIBLE_RAILS = 2;
+/** Dois visiveis, um acima e um abaixo, para o foco ter para onde ir. */
+const RENDERED_RAILS = 4;
 
 /**
  * Teto de cartoes por trilho.
  *
  * O TMDB devolve 20 por pagina. Com seis trilhos live isso daria 120
- * imagens remotas carregando de uma vez num armv7 — e nenhuma lista aqui e
- * virtualizada, entao todas montam juntas. Doze por trilho ja da 72, que e
- * mais do que cabe na tela varias vezes.
+ * imagens remotas. Doze por trilho ja da 72, que e mais do que cabe na tela
+ * varias vezes.
  *
- * Numero de conforto, nao de medicao: ninguem mediu onde o aparelho comeca
- * a sofrer. Se precisar de mais catalogo, suba aqui e OLHE a TV.
+ * Numero de conforto, nao o limite da tela: os Carousels reciclam. O que falta
+ * para subir e paginar a busca no TMDB.
  */
 const MAX_PER_RAIL = 12;
 
 export type RailTitles = Record<string, TmdbTitle[]>;
 
-/** Deslocamento vertical da pilha com este trilho no topo, com o clamp. */
-const stackOffset = (railIndex: number): number =>
-  Math.min(railIndex, Math.max(0, RAILS.length - VISIBLE_RAILS)) * RAIL_BLOCK_H;
+/* Sem o vao padrao do Carousel: o espaco entre trilhos ja vem do RAIL_GAP. */
+const NO_GAP = {itemPadding: 0, itemPaddingOnSelection: 0};
+
+const railsAdapter: CarouselItemDataAdapter<RailSpec, string> = {
+  getItem: index => RAILS[index],
+  getItemCount: () => RAILS.length,
+  getItemKey: (info: CarouselRenderInfo<RailSpec>) => info.item.key,
+  notifyDataError: () => false,
+};
 
 export const CatalogScreen = ({navigation}: ScreenProps<'catalog'>): React.JSX.Element => {
   /** Titulos por chave de trilho. Trilho ausente do mapa = ainda carregando. */
   const [byRail, setByRail] = useState<RailTitles>({});
   const [settled, setSettled] = useState<boolean>(false);
+  /* So a primeira montagem pede foco. Medido em 2026-11-04: o primeiro trilho,
+   * ao ser reciclado de volta, remontava com `hasTVPreferredFocus` e roubava o
+   * foco do trilho de baixo. */
+  const initialFocusTaken = useRef<boolean>(false);
   const [focusedRail, setFocusedRail] = useState<string>(RAILS[0].key);
-  const [focusedTitle, setFocusedTitle] = useState<Record<string, number>>({});
   /* Foco na barra de topo nao pode pintar um trilho de amarelo ao mesmo
    * tempo — mesma regra de dois focos que o app-sonda ja seguia. */
   const [barFocused, setBarFocused] = useState<boolean>(false);
-
-  const y = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     let cancelled = false;
@@ -81,6 +90,7 @@ export const CatalogScreen = ({navigation}: ScreenProps<'catalog'>): React.JSX.E
       if (!cancelled) {
         const rails: RailTitles = Object.fromEntries(lists);
         setByRail(rails);
+        initialFocusTaken.current = false;
         setSettled(true);
         /* A pilha remonta (ver `stackKey`) e o foco volta para o primeiro
          * poster; o indice de rolagem tem de acompanhar, senao a tela fica
@@ -105,31 +115,45 @@ export const CatalogScreen = ({navigation}: ScreenProps<'catalog'>): React.JSX.E
    * a tela nasce no estado final. */
   const stackKey = settled || !hasApiKey() ? 'ready' : 'loading';
 
-  const railIndex = useMemo(
-    () => Math.max(0, RAILS.findIndex(r => r.key === focusedRail)),
-    [focusedRail],
-  );
-
-  useEffect(() => {
-    Animated.timing(y, {
-      toValue: -stackOffset(railIndex),
-      duration: SLIDE_MS,
-      useNativeDriver: true,
-    }).start();
-  }, [railIndex, y]);
-
   const handleRailFocus = useCallback((key: string): void => {
+    initialFocusTaken.current = true;
     setFocusedRail(key);
     setBarFocused(false);
-  }, []);
-
-  const handleTitleFocus = useCallback((key: string, id: number): void => {
-    setFocusedTitle(prev => (prev[key] === id ? prev : {...prev, [key]: id}));
   }, []);
 
   const handleTitlePress = useCallback(
     (title: TmdbTitle): void => navigation.navigate('title', {title}),
     [navigation],
+  );
+
+  const handleRailSelected = useCallback(
+    ({selectedIndex}: CarouselSelectionChangeEvent): void => {
+      const rail = RAILS[selectedIndex];
+      if (rail) {
+        handleRailFocus(rail.key);
+      }
+    },
+    [handleRailFocus],
+  );
+
+  const renderRail = useCallback(
+    ({item: spec, index}: CarouselRenderInfo<RailSpec>) => (
+      <PosterRail
+        spec={spec}
+        titles={byRail[spec.key] ?? []}
+        takesInitialFocus={index === 0 && !initialFocusTaken.current}
+        onRailFocus={handleRailFocus}
+        onTitlePress={handleTitlePress}
+      />
+    ),
+    [byRail, handleRailFocus, handleTitlePress],
+  );
+
+  /* Trilho reciclado perde a posicao: e aqui que ela sobrevive. */
+  const selectedIndexes = useRef<Record<string, number>>({}).current;
+  const railFocus = useMemo(
+    () => ({activeRail: barFocused ? null : focusedRail, selectedIndexes}),
+    [barFocused, focusedRail, selectedIndexes],
   );
 
   const handleOpenProbe = useCallback((): void => navigation.navigate('probe'), [navigation]);
@@ -161,21 +185,20 @@ export const CatalogScreen = ({navigation}: ScreenProps<'catalog'>): React.JSX.E
           * inteira com uma key nova monta tudo de novo ao mesmo tempo, e
           * ai o preferido ganha. Acontece uma vez, na carga inicial; a volta
           * de um titulo nao passa por aqui, porque a tela segue montada. */}
-        <Animated.View key={stackKey} style={{transform: [{translateY: y}]}}>
-          {RAILS.map((spec, index) => (
-            <PosterRail
-              key={spec.key}
-              spec={spec}
-              titles={byRail[spec.key] ?? []}
-              active={focusedRail === spec.key && !barFocused}
-              focusedTitleId={focusedTitle[spec.key] ?? null}
-              takesInitialFocus={index === 0}
-              onRailFocus={handleRailFocus}
-              onTitleFocus={handleTitleFocus}
-              onTitlePress={handleTitlePress}
-            />
-          ))}
-        </Animated.View>
+        <RailFocusContext.Provider value={railFocus}>
+          <Carousel<RailSpec, string>
+          key={stackKey}
+          containerStyle={styles.stack}
+          orientation="vertical"
+          dataAdapter={railsAdapter}
+          renderItem={renderRail}
+          itemStyle={NO_GAP}
+          renderedItemsCount={RENDERED_RAILS}
+          numOffsetItems={1}
+          selectionStrategy="anchored"
+          onSelectionChanged={handleRailSelected}
+        />
+        </RailFocusContext.Provider>
       </View>
     </View>
   );
@@ -186,6 +209,7 @@ const styles = StyleSheet.create({
   /* Recorta a pilha: o trilho que desliza para fora nao pode pintar por
    * cima da barra de topo. */
   stackViewport: {flex: 1, overflow: 'hidden'},
+  stack: {width: SCREEN_W, height: '100%'},
   notice: {
     color: C.danger,
     fontSize: px(32),

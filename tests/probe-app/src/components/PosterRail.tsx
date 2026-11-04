@@ -21,7 +21,7 @@
  * um esqueleto. Fazer o trilho vazio navegar de outro jeito ensinaria ao
  * usuario uma regra que deixa de valer assim que o dado chega.
  */
-import React, {memo, useCallback, useMemo} from 'react';
+import React, {createContext, memo, useCallback, useContext, useMemo} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {
   Carousel,
@@ -57,16 +57,22 @@ const FOCUS_RING = {
   borderStrokeWidth: 0,
 };
 
+/**
+ * Vem por contexto, nao por prop: o Carousel de fora nao redesenha um item ja
+ * montado quando o `renderItem` muda, entao uma prop `active` ficava velha e o
+ * cabecalho do trilho focado continuava apagado. Medido em 2026-11-04.
+ */
+export const RailFocusContext = createContext<{
+  activeRail: string | null;
+  selectedIndexes: Record<string, number>;
+}>({activeRail: null, selectedIndexes: {}});
+
 type Props = {
   spec: RailSpec;
   titles: TmdbTitle[];
-  /** Este trilho e o que tem o foco? */
-  active: boolean;
-  focusedTitleId: number | null;
   /** O primeiro cartao deste trilho recebe o foco na montagem? */
   takesInitialFocus: boolean;
   onRailFocus: (key: string) => void;
-  onTitleFocus: (key: string, id: number) => void;
   onTitlePress: (title: TmdbTitle) => void;
 };
 
@@ -74,26 +80,18 @@ export const PosterRail = memo(
   ({
     spec,
     titles,
-    active,
-    /* Nao usado mais aqui: quem desenha o anel e o `selectionBorder` do
-     * Carousel. Prop mantida para nao mexer no contrato com CatalogScreen. */
-    focusedTitleId: _focusedTitleId,
     takesInitialFocus,
     onRailFocus,
-    onTitleFocus,
     onTitlePress,
   }: Props) => {
+    const {activeRail, selectedIndexes} = useContext(RailFocusContext);
+    const active = activeRail === spec.key;
+
     /* Trilho live sem titulo ainda (rede em voo, ou sem chave do TMDB) cai
      * no mesmo esqueleto dos outros — nao ha estado de "vazio" na tela. */
     const showSkeleton = !spec.live || titles.length === 0;
 
-    const handleTitleFocus = useCallback(
-      (id: number) => {
-        onRailFocus(spec.key);
-        onTitleFocus(spec.key, id);
-      },
-      [onRailFocus, onTitleFocus, spec.key],
-    );
+    const handleCardFocus = useCallback(() => onRailFocus(spec.key), [onRailFocus, spec.key]);
 
     /* O Carousel nao move o foco real de View para dentro do Pressable de
      * cada cartao — ele gerencia a selecao por conta propria e so avisa por
@@ -101,23 +99,12 @@ export const PosterRail = memo(
      * exemplo da doc) deixa o anel de foco congelado no primeiro item para
      * sempre, porque o evento nunca dispara — medido no aparelho em
      * 2026-11-04: o RIGHT deslizava o trilho mas nenhum cartao acendia. */
-    const handleSkeletonSelectionChanged = useCallback(
+    const handleSelectionChanged = useCallback(
       ({selectedIndex}: CarouselSelectionChangeEvent) => {
+        selectedIndexes[spec.key] = selectedIndex;
         onRailFocus(spec.key);
-        onTitleFocus(spec.key, selectedIndex);
       },
-      [onRailFocus, onTitleFocus, spec.key],
-    );
-
-    const handleTitleSelectionChanged = useCallback(
-      ({selectedIndex}: CarouselSelectionChangeEvent) => {
-        const title = titles[selectedIndex];
-        if (title) {
-          onRailFocus(spec.key);
-          onTitleFocus(spec.key, title.id);
-        }
-      },
-      [onRailFocus, onTitleFocus, spec.key, titles],
+      [onRailFocus, selectedIndexes, spec.key],
     );
 
     const skeletonAdapter: CarouselItemDataAdapter<number, string> = useMemo(
@@ -153,11 +140,11 @@ export const PosterRail = memo(
           focused={false}
           railActive={active}
           preferred={takesInitialFocus && index === 0}
-          onFocus={handleTitleFocus}
+          onFocus={handleCardFocus}
           accessibilityLabel={`${spec.brand}, catálogo em breve`}
         />
       ),
-      [active, handleTitleFocus, spec.brand, takesInitialFocus],
+      [active, handleCardFocus, spec.brand, takesInitialFocus],
     );
 
     const renderTitle = useCallback(
@@ -167,11 +154,11 @@ export const PosterRail = memo(
           focused={false}
           railActive={active}
           preferred={takesInitialFocus && index === 0}
-          onFocus={handleTitleFocus}
+          onFocus={handleCardFocus}
           onPress={onTitlePress}
         />
       ),
-      [active, handleTitleFocus, onTitlePress, takesInitialFocus],
+      [active, handleCardFocus, onTitlePress, takesInitialFocus],
     );
 
     return (
@@ -211,28 +198,32 @@ export const PosterRail = memo(
         <View style={styles.viewport}>
           {showSkeleton ? (
             <Carousel<number, string>
+              uniqueId={spec.key}
               containerStyle={styles.track}
               orientation="horizontal"
               dataAdapter={skeletonAdapter}
               renderItem={renderSkeleton}
+              initialStartIndex={selectedIndexes[spec.key] ?? 0}
               itemStyle={ITEM_GAP}
               selectionStrategy="anchored"
               navigableScrollAreaMargin={RAIL_MAIN_X}
               trapSelectionOnOrientation
-              onSelectionChanged={handleSkeletonSelectionChanged}
+              onSelectionChanged={handleSelectionChanged}
               selectionBorder={FOCUS_RING}
             />
           ) : (
             <Carousel<TmdbTitle, number>
+              uniqueId={spec.key}
               containerStyle={styles.track}
               orientation="horizontal"
               dataAdapter={titlesAdapter}
               renderItem={renderTitle}
+              initialStartIndex={selectedIndexes[spec.key] ?? 0}
               itemStyle={ITEM_GAP}
               selectionStrategy="anchored"
               navigableScrollAreaMargin={RAIL_MAIN_X}
               trapSelectionOnOrientation
-              onSelectionChanged={handleTitleSelectionChanged}
+              onSelectionChanged={handleSelectionChanged}
               selectionBorder={FOCUS_RING}
             />
           )}
