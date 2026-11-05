@@ -60,7 +60,7 @@ Armadilhas do container, todas já pagas uma vez:
 
 ### Ver a interface sem o aparelho
 
-O Vega Virtual Device roda em outro container, `vega-vvd`, com janela no Windows, e usa o `.vpkg` `x86_64` que o mesmo build gera. Serve para ver a interface; as medições continuam no Fire Stick. O screenshot abaixo gera PNG de 0 byte no VVD; lá ele sai pelo console do emulador. Receita em `research/05-vega-virtual-device-wsl.md`.
+O Vega Virtual Device roda em outro container, `vega-vvd-gpu`, com janela no Windows, e usa o `.vpkg` `x86_64` que o mesmo build gera. Serve para ver a interface; as medições continuam no Fire Stick. O screenshot abaixo gera PNG de 0 byte no VVD; lá ele sai pelo console do emulador. Receita em `research/05-vega-virtual-device-wsl.md`.
 
 ### Ver a tela e apertar botões
 

@@ -71,6 +71,18 @@ docker exec vega-vvd bash -c 'export PATH=/root/vega/bin:/root/vega/node22/bin:$
   vega run-app /root/p.vpkg com.portalprobe.app.main -d VirtualDevice'
 ```
 
+### Imagem nítida e fluida: medição posterior, no mesmo dia
+
+O passo 2 desenha na CPU (`swrast`) e o skin `tv-remote` encolhe o Portal: janela de 1918×893, app a ~0,83. O atalho da área de trabalho agora chama `~/.local/bin/vega-vvd-start`, que usa o container `vega-vvd-gpu` (imagem `vega-vvd:gpu`). O container `vega-vvd` ficou parado e inalterado. Nitidez conferida por uma pessoa na janela.
+
+| Modo | Portal na janela | CPU do emulador (mesmas teclas; só indicativo) |
+|---|---|---|
+| CPU, com skin | ~1587×893 | 125% de um núcleo |
+| GPU (Iris Xe via D3D12), com skin | ~960×540 | 65% |
+| GPU, sem skin, 1:1 | 1920×1080 | 100% |
+
+FPS não foi medido. Peças: `--device /dev/dxg`, `-v /usr/lib/wsl:/usr/lib/wsl:ro`, Mesa com D3D12 no container e o emulador chamado direto com `-no-skin -fixed-scale -gpu host`, já que a CLI não repassa opções. Em tela cheia, a janela cobre a barra de tarefas. Nesse modo, `vega virtual-device stop` não enxerga o VVD: feche a janela. Build novo precisa ser copiado para `/root/vega/p.vpkg` no volume, que é o arquivo que o atalho instala.
+
 ### 4. Tirar screenshot
 
 O console do emulador captura de fora do sistema convidado, então não depende do `gwsi-tool-screenshooter`.
