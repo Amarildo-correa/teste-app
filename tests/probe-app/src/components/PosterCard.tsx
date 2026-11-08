@@ -1,9 +1,8 @@
 /**
  * Cartao de poster.
  *
- * Foco com dois sinais redundantes, nunca so cor: borda de 6px em accent e
- * poster em brilho cheio — fora de foco ele recua para 62% e a diferenca de
- * luminancia aparece mesmo para quem nao distingue o amarelo da borda.
+ * O anel de foco e do Carousel (`selectionBorder` no PosterRail). O cartao
+ * reserva a borda de 6px transparente para o anel 'inset' nao cobrir a arte.
  *
  * O cartao focado NAO escreve o titulo por cima da capa: a arte do poster ja
  * traz o nome, e a faixa que havia ali so cobria a imagem com informacao
@@ -23,17 +22,11 @@ const MAX_ATTEMPTS = 3;
 
 type Props = {
   title: TmdbTitle;
-  focused: boolean;
-  /** O trilho e quem tem o foco agora? */
-  railActive: boolean;
-  preferred: boolean;
-  onFocus: (id: number) => void;
   onPress: (title: TmdbTitle) => void;
 };
 
 export const PosterCard = memo(
-  ({title, focused, railActive, preferred, onFocus, onPress}: Props) => {
-    const handleFocus = useCallback(() => onFocus(title.id), [onFocus, title.id]);
+  ({title, onPress}: Props) => {
     const handlePress = useCallback(() => onPress(title), [onPress, title]);
 
     /* `source={{uri}}` inline cria um objeto novo a cada render. O cartao
@@ -82,27 +75,23 @@ export const PosterCard = memo(
       return () => clearTimeout(timer);
     }, [attempt, loaded, failed, source]);
 
-    const active = focused && railActive;
     const kind = title.kind === 'tv' ? 'série' : 'filme';
 
     return (
       <Pressable
-        focusable
-        hasTVPreferredFocus={preferred}
-        onFocus={handleFocus}
         onPress={handlePress}
         accessible
         accessibilityRole="button"
         accessibilityLabel={`${title.title}, ${kind}${
           title.year ? `, ${title.year}` : ''
         }. Abrir no Netflix`}
-        style={active ? styles.frameFocused : styles.frame}
+        style={styles.frame}
         testID={`poster-${title.id}`}>
         {source !== null && !failed ? (
           <Image
             key={`poster-${title.id}-${attempt}`}
             source={source}
-            style={active ? styles.image : styles.imageDim}
+            style={styles.imageDim}
             resizeMode="cover"
             onLoad={handleLoad}
             onError={handleError}
@@ -135,9 +124,7 @@ const styles = StyleSheet.create({
    * competiam com o unico foco amarelo que importa. A borda transparente
    * fica para reservar o espaco, nao para aparecer. */
   frame: {...frameBase, borderColor: 'transparent'},
-  frameFocused: {...frameBase, borderColor: C.accent},
 
-  image: {width: '100%', height: '100%'},
   imageDim: {width: '100%', height: '100%', opacity: 0.62},
 
   fallback: {flex: 1, alignItems: 'center', justifyContent: 'center', padding: px(18)},

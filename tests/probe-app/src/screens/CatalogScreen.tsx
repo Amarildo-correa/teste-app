@@ -173,11 +173,26 @@ export const CatalogScreen = ({navigation}: ScreenProps<'catalog'>): React.JSX.E
     [pagers, handleRailFocus, handleTitlePress],
   );
 
+  /* Ao voltar para o catalogo (Back do titulo ou da sonda), o trilho ativo
+   * remonta e pede o foco de novo. Sem isso, as setas laterais travavam depois
+   * de alguns segundos parado; descer e subir destravava (VVD, 2026-11-08). */
+  const [refocusToken, setRefocusToken] = useState<number>(0);
+  useEffect(() => {
+    let first = true;
+    return navigation.addListener('focus', () => {
+      if (first) {
+        first = false;
+        return;
+      }
+      setRefocusToken(previous => previous + 1);
+    });
+  }, [navigation]);
+
   /* Trilho reciclado perde a posicao: e aqui que ela sobrevive. */
   const selectedIndexes = useRef<Record<string, number>>({}).current;
   const railFocus = useMemo(
-    () => ({activeRail: barFocused ? null : focusedRail, selectedIndexes}),
-    [barFocused, focusedRail, selectedIndexes],
+    () => ({activeRail: barFocused ? null : focusedRail, selectedIndexes, refocusToken}),
+    [barFocused, focusedRail, selectedIndexes, refocusToken],
   );
 
   const handleOpenProbe = useCallback((): void => navigation.navigate('probe'), [navigation]);

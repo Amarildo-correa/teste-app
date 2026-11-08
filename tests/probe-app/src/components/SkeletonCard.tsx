@@ -22,7 +22,7 @@
  * por cartao criaria onda, que parece carregamento progressivo e mente,
  * porque nao ha nada carregando nestes trilhos.
  */
-import React, {memo, useCallback, useEffect, useRef} from 'react';
+import React, {memo, useEffect, useRef} from 'react';
 import {Animated, Easing, Pressable, StyleSheet} from 'react-native';
 import {C, POSTER_H, POSTER_W, px} from '../theme';
 
@@ -32,19 +32,13 @@ const MAX_OPACITY = 0.75;
 
 type Props = {
   index: number;
-  focused: boolean;
-  /** O trilho e quem tem o foco agora? */
-  railActive: boolean;
-  preferred: boolean;
-  onFocus: (index: number) => void;
   /** Para o leitor de tela: "<marca>, catalogo em breve". */
   accessibilityLabel: string;
 };
 
 export const SkeletonCard = memo(
-  ({index, focused, railActive, preferred, onFocus, accessibilityLabel}: Props) => {
+  ({index, accessibilityLabel}: Props) => {
     const pulse = useRef(new Animated.Value(MIN_OPACITY)).current;
-    const handleFocus = useCallback(() => onFocus(index), [onFocus, index]);
 
     useEffect(() => {
       const loop = Animated.loop(
@@ -69,17 +63,15 @@ export const SkeletonCard = memo(
       return () => loop.stop();
     }, [pulse]);
 
-    const active = focused && railActive;
-
     return (
       <Pressable
+        /* Sem `onPress`, o Pressable nao e focavel por padrao, e o trilho
+         * inteiro ficava fora do alcance do DOWN (VVD, 2026-11-08). */
         focusable
-        hasTVPreferredFocus={preferred}
-        onFocus={handleFocus}
         accessible
         accessibilityRole="none"
         accessibilityLabel={accessibilityLabel}
-        style={active ? styles.frameFocused : styles.frame}
+        style={styles.frame}
         testID={`skeleton-${index}`}>
         <Animated.View style={[styles.fill, {opacity: pulse}]} />
       </Pressable>
@@ -99,6 +91,5 @@ const frameBase = {
 
 const styles = StyleSheet.create({
   frame: {...frameBase, borderColor: 'transparent'},
-  frameFocused: {...frameBase, borderColor: C.accent},
   fill: {flex: 1, backgroundColor: C.surfaceFocus},
 });
