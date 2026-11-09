@@ -120,6 +120,44 @@ Cada linha é um erro real desta medição. O controle negativo é o próprio er
 
 **O sintoma engana:** quando o QEMU morre, a CLI não percebe e espera o prazo inteiro, terminando em `Deadline reached ... unresponsive`. Confira `virtual_device.err` na pasta mais recente de `vvd/instances/`, em vez de aumentar o `--timeout`.
 
+## Logs do app no VVD: medição de 2026-11-09
+
+Container `vega-vvd-gpu`, janela 1280×720, Portal em `VISIBLE`.
+
+| Caso | Resultado |
+|---|---|
+| `journalctl` | recusado: "not supported in developer mode shell. Please use loggingctl" |
+| `loggingctl log -P <pid>` / `-v com.portalprobe.app` (histórico) | só 3 a 6 linhas: o histórico guarda pouco |
+| `loggingctl log -f` ao vivo, reabrindo o app e apertando setas | 5228 linhas em ~15 s, com as do Portal (`com.portalprobe.app[<pid>]`), avisos e erros |
+| Screenshot pelo console do emulador, no mesmo ciclo | funciona, catálogo com pôsteres e anel de foco |
+
+O que o log mostrou: 40× `LocalAssetImageLoader: Cannot load image from non local source:` (`ERROR`, keplerscript) e `SplashScreenImages.zip` ausente no splashservice. Os pôsteres remotos aparecem no screenshot do mesmo momento, então o primeiro não impede a imagem; não verifiquei se acontece no Fire Stick. O resto (`resmgr-monitor-power`, `GWSI_LOG ... blank screen` ao encerrar) vem do sistema ao matar o app.
+
+Receita: `vda shell` não aceita pipe, então o script vai como arquivo (mesmo padrão do `on_device`):
+
+```sh
+#!/bin/sh
+loggingctl log -f > /tmp/f.txt 2>&1 &
+LP=$!
+sleep 1
+vlcm terminate-app --pkg-id com.portalprobe.app
+sleep 2
+vlcm launch-app pkg://com.portalprobe.app.main
+sleep 10
+inputd-cli button_press KEY_DOWN; sleep 2
+kill $LP
+grep portalprobe /tmp/f.txt | grep -v SurfaceTelemetry | grep -E "err|warning"
+```
+
+```bash
+docker cp logs.sh vega-vvd-gpu:/root/logs.sh
+docker exec vega-vvd-gpu bash -lc 'export PATH=/root/vega/bin:/root/vega/node22/bin:$PATH
+  vega exec vda push /root/logs.sh /tmp/logs.sh
+  timeout 90 vega exec vda shell "sh /tmp/logs.sh"'
+```
+
+`inputd-cli`, `vlcm list` e `vlcm crash-history` funcionam no VVD como no aparelho.
+
 ## O que o VVD não substitui
 
 - **Medido aqui:** o screenshot do aparelho não funciona, então quem confere a tela do VVD é uma pessoa olhando a janela. Corrigido na mesma data: o `gwsi-tool-screenshooter` continua sem funcionar, mas o console do emulador captura a tela (passo 4), e um agente também pode conferi-la.

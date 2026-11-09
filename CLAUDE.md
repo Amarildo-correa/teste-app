@@ -62,6 +62,8 @@ Armadilhas do container, todas já pagas uma vez:
 
 O Vega Virtual Device roda em outro container, `vega-vvd-gpu`, com janela no Windows, e usa o `.vpkg` `x86_64` que o mesmo build gera. Serve para ver a interface; as medições continuam no Fire Stick. O screenshot abaixo gera PNG de 0 byte no VVD; lá ele sai pelo console do emulador. Receita em `research/05-vega-virtual-device-wsl.md`.
 
+**Iterar no VVD, Fire Stick só na reta final.** Layout, foco e erros de JS se conferem no VVD: screenshot pelo console do emulador, teclas por `inputd-cli` e logs por `loggingctl log -f` (`journalctl` é recusado e o histórico do `loggingctl` guarda poucas linhas; capture ao vivo). O Fire Stick fica para o que o VVD não reproduz: `canOpenURL` dos provedores, abrir outros apps, loja, desempenho armv7 e a conferência final na TV.
+
 ### Ver a tela e apertar botões
 
 ```bash
